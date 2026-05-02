@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+  # ── Base de datos ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: kingsley_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kingsley_caps_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Cache ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: kingsley_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Administración de BD (opcional, solo desarrollo) ──────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: kingsley_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@kingsley.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+# Nota: Los servicios de aplicación (server, client, ai-engine)
+# se ejecutan localmente con npm run dev durante el desarrollo.
+# Para producción, agregar los servicios con sus Dockerfiles.

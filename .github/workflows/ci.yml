@@ -1,0 +1,105 @@
+name: CI — Kingsley Caps
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  # ── Backend Tests ──────────────────────────────────────────
+  backend:
+    name: Backend — Lint & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: kingsley_caps_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: server
+        run: npm run lint
+
+      - name: Run tests with coverage
+        working-directory: server
+        run: npm run test -- --coverage
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: kingsley_caps_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          JWT_ACCESS_SECRET: test_access_secret_at_least_64_characters_long_for_security
+          JWT_REFRESH_SECRET: test_refresh_secret_at_least_64_characters_long_for_security
+          ETH_NETWORK: sepolia
+          ETH_RPC_URL: https://sepolia.infura.io/v3/test
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: server/coverage/
+
+  # ── Frontend Tests ─────────────────────────────────────────
+  frontend:
+    name: Frontend — Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: client
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: client
+        run: npm run test -- --coverage
+        env:
+          CI: true
+
+  # ── Coverage Gate ──────────────────────────────────────────
+  coverage-check:
+    name: ✅ All checks passed
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - run: echo "Backend y frontend pasaron lint y tests. Cobertura mínima 80%."
