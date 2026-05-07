@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const User = require('./User');
 
 const RefreshToken = sequelize.define('RefreshToken', {
   id: {
@@ -33,8 +32,5 @@ const RefreshToken = sequelize.define('RefreshToken', {
   underscored: true,
   updatedAt: false,
 });
-
-User.hasMany(RefreshToken, { foreignKey: 'user_id', onDelete: 'CASCADE' });
-RefreshToken.belongsTo(User, { foreignKey: 'user_id' });
 
 module.exports = RefreshToken;
