@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const RefreshToken = sequelize.define('RefreshToken', {
+const Notification = sequelize.define('Notification', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -11,26 +11,35 @@ const RefreshToken = sequelize.define('RefreshToken', {
     type: DataTypes.UUID,
     allowNull: false,
   },
-  token_hash: {
+  store_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+  },
+  type: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+  },
+  title: {
     type: DataTypes.STRING(255),
     allowNull: false,
   },
-  expires_at: {
-    type: DataTypes.DATE,
+  message: {
+    type: DataTypes.TEXT,
     allowNull: false,
   },
-  revoked: {
+  read: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-  revoked_at: {
-    type: DataTypes.DATE,
+  metadata: {
+    type: DataTypes.JSONB,
     allowNull: true,
   },
 }, {
-  tableName: 'refresh_token',
+  tableName: 'notification',
   underscored: true,
+  timestamps: true,
   updatedAt: false,
 });
 
-module.exports = RefreshToken;
+module.exports = Notification;
