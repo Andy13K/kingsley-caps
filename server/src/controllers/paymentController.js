@@ -8,17 +8,20 @@ const getCryptoPrice = asyncHandler(async (req, res) => {
 });
 
 const initiateCryptoPayment = asyncHandler(async (req, res) => {
-  const result = await paymentService.initiateCryptoPayment({ orderId: req.body.orderId, userId: req.user.id });
+  const { orderId } = req.body;
+  const result = await paymentService.initiateCryptoPayment({ orderId, userId: req.user.id });
   res.status(201).json({ success: true, data: result });
 });
 
 const verifyCryptoPayment = asyncHandler(async (req, res) => {
-  const result = await paymentService.verifyCryptoPayment({ paymentId: req.body.paymentId, txHash: req.body.txHash, userId: req.user.id });
+  const { paymentId, txHash } = req.body;
+  const result = await paymentService.verifyCryptoPayment({ paymentId, txHash, userId: req.user.id });
   res.json({ success: true, data: result });
 });
 
 const getPaymentByOrderId = asyncHandler(async (req, res) => {
-  const payment = await paymentService.getPaymentByOrderId({ orderId: req.params.orderId, userId: req.user.id });
+  const { orderId } = req.params;
+  const payment = await paymentService.getPaymentByOrderId({ orderId, userId: req.user.id });
   res.json({ success: true, data: { payment } });
 });
 

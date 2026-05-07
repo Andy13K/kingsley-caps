@@ -1,10 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
-const { Order, Store, PaymentTransaction, User } = require('../models');
+const { Order, Store, PaymentTransaction, Notification, User } = require('../models');
 const blockchainService = require('./blockchainService');
 const priceService = require('./priceService');
-const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
+
+// TODO: use inventoryService for stock reservation/release when integrated
+// const inventoryService = require('./inventoryService');
 
 const CRYPTO_ERROR_MESSAGES = {
   'ERR-C01': 'Transacción no encontrada en la blockchain',
@@ -16,13 +18,20 @@ const CRYPTO_ERROR_MESSAGES = {
 };
 
 const initiateCryptoPayment = async ({ orderId, userId }) => {
-  const order = await Order.findOne({ where: { id: orderId }, include: [{ model: Store }] });
+  const order = await Order.findOne({
+    where: { id: orderId },
+    include: [{ model: Store }],
+  });
 
   if (!order) throw new AppError('Orden no encontrada', 404);
   if (order.customer_id !== userId) throw new AppError('No tienes acceso a esta orden', 403);
   if (order.status !== 'pending_payment') throw new AppError('La orden no está pendiente de pago', 400);
-  if (!order.Store || !order.Store.crypto_enabled) throw new AppError('Pagos crypto no habilitados en esta tienda', 400);
-  if (!order.Store.eth_wallet_address) throw new AppError('La tienda no tiene dirección de wallet configurada', 400);
+  if (!order.Store || !order.Store.crypto_enabled) {
+    throw new AppError('Pagos crypto no habilitados en esta tienda', 400);
+  }
+  if (!order.Store.eth_wallet_address) {
+    throw new AppError('La tienda no tiene dirección de wallet configurada', 400);
+  }
 
   const rate = await priceService.getCryptoRate();
   const amountEth = (order.total / rate.eth_gtq).toFixed(8);
@@ -31,20 +40,34 @@ const initiateCryptoPayment = async ({ orderId, userId }) => {
   const walletAddress = order.Store.eth_wallet_address;
 
   const payment = await PaymentTransaction.create({
-    order_id: orderId, store_id: order.store_id, method: 'crypto_eth',
-    amount_fiat: order.total, currency_fiat: order.currency || 'GTQ',
-    amount_crypto: parseFloat(amountEth), crypto_currency: 'ETH',
-    exchange_rate: rate.eth_gtq, rate_locked_at: new Date(),
-    wallet_to: walletAddress, network: process.env.ETH_NETWORK || 'sepolia',
-    nonce, initiated_at: new Date(), expires_at: expiresAt,
+    order_id: orderId,
+    store_id: order.store_id,
+    method: 'crypto_eth',
+    amount_fiat: order.total,
+    currency_fiat: order.currency || 'GTQ',
+    amount_crypto: parseFloat(amountEth),
+    crypto_currency: 'ETH',
+    exchange_rate: rate.eth_gtq,
+    rate_locked_at: new Date(),
+    wallet_to: walletAddress,
+    network: process.env.ETH_NETWORK || 'sepolia',
+    nonce,
+    initiated_at: new Date(),
+    expires_at: expiresAt,
   });
 
   logger.info(`Crypto payment initiated: ${payment.id} for order ${orderId}`);
 
   return {
-    paymentId: payment.id, walletAddress, amountEth, amountGtq: order.total,
-    exchangeRate: rate.eth_gtq, rateLockedAt: payment.rate_locked_at,
-    expiresAt, nonce, network: payment.network,
+    paymentId: payment.id,
+    walletAddress,
+    amountEth,
+    amountGtq: order.total,
+    exchangeRate: rate.eth_gtq,
+    rateLockedAt: payment.rate_locked_at,
+    expiresAt,
+    nonce,
+    network: payment.network,
     qrData: `ethereum:${walletAddress}?amount=${amountEth}&memo=${nonce}`,
   };
 };
@@ -52,7 +75,10 @@ const initiateCryptoPayment = async ({ orderId, userId }) => {
 const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
   const payment = await PaymentTransaction.findOne({
     where: { id: paymentId },
-    include: [{ model: Order }, { model: Store }],
+    include: [
+      { model: Order },
+      { model: Store },
+    ],
   });
 
   if (!payment) throw new AppError('Pago no encontrado', 404);
@@ -61,43 +87,79 @@ const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
     await payment.update({ status: 'failed' });
     throw new AppError(CRYPTO_ERROR_MESSAGES['ERR-C05'], 400);
   }
-  if (payment.status !== 'pending') throw new AppError('El pago ya fue procesado anteriormente', 400);
-  if (payment.Order.customer_id !== userId) throw new AppError('No tienes acceso a este pago', 403);
+
+  if (payment.status !== 'pending') {
+    throw new AppError('El pago ya fue procesado anteriormente', 400);
+  }
+
+  if (payment.Order.customer_id !== userId) {
+    throw new AppError('No tienes acceso a este pago', 403);
+  }
 
   const txHashRegex = /^0x[a-fA-F0-9]{64}$/;
-  if (!txHashRegex.test(txHash)) throw new AppError('Formato de hash de transacción inválido', 400);
+  if (!txHashRegex.test(txHash)) {
+    throw new AppError('Formato de hash de transacción inválido', 400);
+  }
 
   const result = await blockchainService.verifyTransaction({
-    txHash, expectedTo: payment.wallet_to,
-    expectedAmountEth: String(payment.amount_crypto), network: payment.network,
+    txHash,
+    expectedTo: payment.wallet_to,
+    expectedAmountEth: String(payment.amount_crypto),
+    network: payment.network,
   });
 
   if (result.code === 'ERR-C06') {
     await payment.update({ status: 'discrepancy', tx_hash: txHash });
-    try {
-      await notificationService.createDiscrepancyAlert({ payment, order: payment.Order });
-    } catch (err) {
-      logger.error('Failed to create discrepancy notification', { message: err.message });
+
+    const superadmin = await User.findOne({ where: { role: 'superadmin' }, attributes: ['id'] });
+    if (superadmin) {
+      await Notification.create({
+        user_id: superadmin.id,
+        store_id: payment.store_id,
+        type: 'payment_discrepancy',
+        title: 'Discrepancia en pago crypto',
+        message: `Pago ${payment.id} con discrepancia: esperado ${payment.amount_crypto} ETH, recibido ${result.received} ETH`,
+        metadata: {
+          paymentId: payment.id,
+          txHash,
+          expected: payment.amount_crypto,
+          received: result.received,
+        },
+      });
     }
+
+    logger.warn(`Payment discrepancy detected for payment ${paymentId}`);
     throw new AppError(CRYPTO_ERROR_MESSAGES['ERR-C06'], 400);
   }
 
   if (!result.verified) {
-    throw new AppError(CRYPTO_ERROR_MESSAGES[result.code] || 'Error de verificación blockchain', 400);
+    const message = CRYPTO_ERROR_MESSAGES[result.code] || 'Error de verificación blockchain';
+    throw new AppError(message, 400);
   }
 
   const confirmedAt = new Date();
-  await payment.update({ status: 'confirmed', tx_hash: txHash, confirmations: result.confirmations, block_number: result.blockNumber, confirmed_at: confirmedAt });
-  await payment.Order.update({ status: 'paid', paid_at: confirmedAt, payment_method: 'crypto_eth' });
 
-  try {
-    await notificationService.createPaymentConfirmedNotification({ order: payment.Order, payment });
-  } catch (err) {
-    logger.error('Failed to create payment confirmed notification', { message: err.message });
-  }
+  await payment.update({
+    status: 'confirmed',
+    tx_hash: txHash,
+    confirmations: result.confirmations,
+    block_number: result.blockNumber,
+    confirmed_at: confirmedAt,
+  });
+
+  await payment.Order.update({
+    status: 'paid',
+    paid_at: confirmedAt,
+    payment_method: 'crypto_eth',
+  });
 
   logger.info(`Payment ${paymentId} confirmed for order ${payment.order_id}`);
-  return { orderId: payment.order_id, status: 'paid', confirmedAt };
+
+  return {
+    orderId: payment.order_id,
+    status: 'paid',
+    confirmedAt,
+  };
 };
 
 const getPaymentByOrderId = async ({ orderId, userId }) => {
@@ -106,8 +168,10 @@ const getPaymentByOrderId = async ({ orderId, userId }) => {
     include: [{ model: Order }],
     order: [['created_at', 'DESC']],
   });
+
   if (!payment) throw new AppError('Pago no encontrado', 404);
   if (payment.Order.customer_id !== userId) throw new AppError('No tienes acceso a este pago', 403);
+
   return payment;
 };
 
