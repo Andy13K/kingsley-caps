@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
 import { useTheme } from '../../context/ThemeContext';
+import NotificationBell from '../ui/NotificationBell';
 
 function SunIcon() {
   return (
@@ -86,6 +87,7 @@ export default function Navbar() {
               {isDark ? <SunIcon /> : <MoonIcon />}
             </button>
 
+            {isAuthenticated && <NotificationBell />}
             {isAuthenticated && <CartIcon count={count} />}
 
             {isAuthenticated ? (

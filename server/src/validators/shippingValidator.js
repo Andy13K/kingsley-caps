@@ -1,10 +1,9 @@
 const Joi = require('joi');
 const AppError = require('../utils/AppError');
 
-const initiateSchema = Joi.object({ orderId: Joi.string().uuid().required() });
-const verifySchema = Joi.object({
-  paymentId: Joi.string().uuid().required(),
-  txHash: Joi.string().pattern(/^0x[a-fA-F0-9]{64}$/).required(),
+const trackingSchema = Joi.object({
+  trackingNumber: Joi.string().min(5).max(100).required(),
+  trackingCompany: Joi.string().min(2).max(100).required(),
 });
 
 const validate = (schema, source = 'body') => (req, res, next) => {
@@ -18,4 +17,4 @@ const validate = (schema, source = 'body') => (req, res, next) => {
   next();
 };
 
-module.exports = { initiateSchema, verifySchema, validate };
+module.exports = { trackingSchema, validate };

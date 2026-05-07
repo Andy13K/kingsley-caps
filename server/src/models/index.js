@@ -10,74 +10,42 @@ const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const PaymentTransaction = require('./PaymentTransaction');
 
-// User <-> RefreshToken
 User.hasMany(RefreshToken, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 RefreshToken.belongsTo(User, { foreignKey: 'user_id' });
 
-// User <-> Store
 User.hasMany(Store, { foreignKey: 'vendor_id' });
 Store.belongsTo(User, { foreignKey: 'vendor_id', as: 'vendor' });
 
-// Store <-> Product
 Store.hasMany(Product, { foreignKey: 'store_id' });
 Product.belongsTo(Store, { foreignKey: 'store_id' });
 
-// Product <-> ProductVariant
 Product.hasMany(ProductVariant, { foreignKey: 'product_id' });
 ProductVariant.belongsTo(Product, { foreignKey: 'product_id' });
-
-// Store <-> ProductVariant
 ProductVariant.belongsTo(Store, { foreignKey: 'store_id' });
 
-// ProductVariant <-> InventoryMovement
 ProductVariant.hasMany(InventoryMovement, { foreignKey: 'product_variant_id' });
 InventoryMovement.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
-
-// Store <-> InventoryMovement
 InventoryMovement.belongsTo(Store, { foreignKey: 'store_id' });
-
-// User <-> InventoryMovement (creator)
 InventoryMovement.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
-// User <-> Notification
 User.hasMany(Notification, { foreignKey: 'user_id' });
 Notification.belongsTo(User, { foreignKey: 'user_id' });
-
-// Store <-> Notification
 Notification.belongsTo(Store, { foreignKey: 'store_id' });
 
-// Store <-> Order
 Store.hasMany(Order, { foreignKey: 'store_id' });
 Order.belongsTo(Store, { foreignKey: 'store_id' });
-
-// User <-> Order (customer)
 User.hasMany(Order, { foreignKey: 'customer_id' });
 Order.belongsTo(User, { foreignKey: 'customer_id', as: 'customer' });
 
-// Order <-> OrderItem
 Order.hasMany(OrderItem, { foreignKey: 'order_id' });
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
-
-// ProductVariant <-> OrderItem
 OrderItem.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
 
-// Order <-> PaymentTransaction
 Order.hasMany(PaymentTransaction, { foreignKey: 'order_id' });
 PaymentTransaction.belongsTo(Order, { foreignKey: 'order_id' });
-
-// Store <-> PaymentTransaction
 PaymentTransaction.belongsTo(Store, { foreignKey: 'store_id' });
 
 module.exports = {
-  sequelize,
-  User,
-  RefreshToken,
-  Store,
-  Product,
-  ProductVariant,
-  InventoryMovement,
-  Notification,
-  Order,
-  OrderItem,
-  PaymentTransaction,
+  sequelize, User, RefreshToken, Store, Product, ProductVariant,
+  InventoryMovement, Notification, Order, OrderItem, PaymentTransaction,
 };
