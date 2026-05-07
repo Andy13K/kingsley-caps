@@ -1,8 +1,9 @@
 const { Op } = require('sequelize');
 const { sequelize, ProductVariant, Product, InventoryMovement, User } = require('../models');
 const AppError = require('../utils/AppError');
-const logger = require('../utils/logger');
-const notificationService = require('./notificationService');
+
+// TODO: import notificationService when available
+// const notificationService = require('./notificationService');
 
 const getVariantStock = async ({ variantId, storeId }) => {
   const variant = await ProductVariant.findOne({
@@ -24,6 +25,7 @@ const adjustStock = async ({ productVariantId, quantity, type, reason, userId, s
 
     const stockBefore = variant.stock;
     const stockAfter = type === 'in' ? stockBefore + quantity : stockBefore - quantity;
+
     if (stockAfter < 0) throw new AppError('Stock insuficiente', 400);
 
     await variant.update({ stock: stockAfter }, { transaction: t });
@@ -40,11 +42,7 @@ const adjustStock = async ({ productVariantId, quantity, type, reason, userId, s
     }, { transaction: t });
 
     if (stockAfter <= variant.low_stock_threshold) {
-      try {
-        await notificationService.createLowStockAlert({ variant, stockAfter });
-      } catch (err) {
-        logger.error('Failed to create low stock notification', { message: err.message });
-      }
+      // TODO: notificationService.createLowStockAlert({ variantId: productVariantId, storeId, stockAfter })
     }
 
     return { variant, movement };
@@ -52,18 +50,20 @@ const adjustStock = async ({ productVariantId, quantity, type, reason, userId, s
 };
 
 const getAlerts = async ({ storeId }) => {
-  return ProductVariant.findAll({
+  const variants = await ProductVariant.findAll({
     where: {
       store_id: storeId,
       [Op.and]: sequelize.literal('"product_variant"."stock" <= "product_variant"."low_stock_threshold"'),
     },
     include: [{ model: Product }],
   });
+  return variants;
 };
 
 const getMovements = async ({ storeId, filters }) => {
   const { variantId, type, dateFrom, dateTo, page, limit } = filters;
   const offset = (page - 1) * limit;
+
   const where = { store_id: storeId };
   if (variantId) where.product_variant_id = variantId;
   if (type) where.type = type;
@@ -75,20 +75,45 @@ const getMovements = async ({ storeId, filters }) => {
 
   const { count, rows } = await InventoryMovement.findAndCountAll({
     where,
-    include: [{ model: ProductVariant }, { model: User, as: 'creator', attributes: ['id', 'name', 'email'] }],
+    include: [
+      { model: ProductVariant },
+      { model: User, as: 'creator', attributes: ['id', 'name', 'email'] },
+    ],
     order: [['created_at', 'DESC']],
     offset,
     limit,
   });
 
-  return { movements: rows, total: count, page, limit, totalPages: Math.ceil(count / limit) };
+  return {
+    movements: rows,
+    total: count,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+  };
 };
 
-const registerMovement = async ({ productVariantId, storeId, type, quantity, stockBefore, stockAfter, reason, referenceId, userId }) => {
+const registerMovement = async ({
+  productVariantId,
+  storeId,
+  type,
+  quantity,
+  stockBefore,
+  stockAfter,
+  reason,
+  referenceId,
+  userId,
+}) => {
   return InventoryMovement.create({
-    product_variant_id: productVariantId, store_id: storeId, type, quantity,
-    stock_before: stockBefore, stock_after: stockAfter, reason,
-    reference_id: referenceId, created_by: userId,
+    product_variant_id: productVariantId,
+    store_id: storeId,
+    type,
+    quantity,
+    stock_before: stockBefore,
+    stock_after: stockAfter,
+    reason,
+    reference_id: referenceId,
+    created_by: userId,
   });
 };
 

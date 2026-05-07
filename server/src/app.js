@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/authRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
 const logger = require('./utils/logger');
 const { sequelize } = require('./models');
 
@@ -20,7 +20,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/payments', paymentRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, error: { message: 'Ruta no encontrada' } });
