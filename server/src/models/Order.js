@@ -1,62 +1,31 @@
 const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-module.exports = (sequelize) => {
-  const Order = sequelize.define(
-    'Order',
-    {
-      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-      storeId: { type: DataTypes.UUID, allowNull: false, field: 'store_id' },
-      customerId: { type: DataTypes.UUID, allowNull: false, field: 'customer_id' },
-      status: {
-        type: DataTypes.ENUM(
-          'pending_payment',
-          'paid',
-          'preparing',
-          'packed',
-          'shipped',
-          'delivered',
-          'cancelled',
-          'refunded'
-        ),
-        defaultValue: 'pending_payment',
-      },
-      subtotal: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-      taxAmount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0, field: 'tax_amount' },
-      shippingAmount: {
-        type: DataTypes.DECIMAL(10, 2),
-        defaultValue: 0,
-        field: 'shipping_amount',
-      },
-      discountAmount: {
-        type: DataTypes.DECIMAL(10, 2),
-        defaultValue: 0,
-        field: 'discount_amount',
-      },
-      total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-      currency: { type: DataTypes.STRING(3), defaultValue: 'GTQ' },
-      shippingAddress: { type: DataTypes.JSONB, allowNull: false, field: 'shipping_address' },
-      shippingMethod: { type: DataTypes.STRING(100), field: 'shipping_method' },
-      trackingNumber: { type: DataTypes.STRING(100), field: 'tracking_number' },
-      trackingCompany: { type: DataTypes.STRING(100), field: 'tracking_company' },
-      paymentMethod: { type: DataTypes.STRING(20), field: 'payment_method' },
-      customerNotes: { type: DataTypes.TEXT, field: 'customer_notes' },
-      vendorNotes: { type: DataTypes.TEXT, field: 'vendor_notes' },
-      paidAt: { type: DataTypes.DATE, field: 'paid_at' },
-      shippedAt: { type: DataTypes.DATE, field: 'shipped_at' },
-      deliveredAt: { type: DataTypes.DATE, field: 'delivered_at' },
-      cancelledAt: { type: DataTypes.DATE, field: 'cancelled_at' },
-    },
-    {
-      tableName: 'order',
-      underscored: true,
-      timestamps: true,
-      indexes: [
-        { fields: ['store_id'] },
-        { fields: ['customer_id'] },
-        { fields: ['store_id', 'status'] },
-      ],
-    }
-  );
+const Order = sequelize.define('Order', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  store_id: { type: DataTypes.UUID, allowNull: false },
+  customer_id: { type: DataTypes.UUID, allowNull: false },
+  status: {
+    type: DataTypes.ENUM('pending_payment', 'paid', 'preparing', 'packed', 'shipped', 'delivered', 'cancelled', 'refunded'),
+    allowNull: false, defaultValue: 'pending_payment',
+  },
+  subtotal: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  tax_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  shipping_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  discount_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  currency: { type: DataTypes.STRING(3), defaultValue: 'GTQ' },
+  shipping_address: { type: DataTypes.JSONB, allowNull: true },
+  shipping_method: { type: DataTypes.STRING(100), allowNull: true },
+  tracking_number: { type: DataTypes.STRING(100), allowNull: true },
+  tracking_company: { type: DataTypes.STRING(100), allowNull: true },
+  payment_method: { type: DataTypes.STRING(20), allowNull: true },
+  customer_notes: { type: DataTypes.TEXT, allowNull: true },
+  vendor_notes: { type: DataTypes.TEXT, allowNull: true },
+  paid_at: { type: DataTypes.DATE, allowNull: true },
+  shipped_at: { type: DataTypes.DATE, allowNull: true },
+  delivered_at: { type: DataTypes.DATE, allowNull: true },
+  cancelled_at: { type: DataTypes.DATE, allowNull: true },
+}, { tableName: 'order', underscored: true });
 
-  return Order;
-};
+module.exports = Order;

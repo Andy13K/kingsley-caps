@@ -1,79 +1,65 @@
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
+const User = require('./User');
+const RefreshToken = require('./RefreshToken');
+const Store = require('./Store');
+const Product = require('./Product');
+const ProductVariant = require('./ProductVariant');
+const InventoryMovement = require('./InventoryMovement');
+const Cart = require('./Cart');
+const CartItem = require('./CartItem');
+const Order = require('./Order');
+const OrderItem = require('./OrderItem');
+const PaymentTransaction = require('./PaymentTransaction');
+const Notification = require('./Notification');
+const ActivityLog = require('./ActivityLog');
 
-const User = require('./User')(sequelize);
-const RefreshToken = require('./RefreshToken')(sequelize);
-const Store = require('./Store')(sequelize);
-const Product = require('./Product')(sequelize);
-const ProductVariant = require('./ProductVariant')(sequelize);
-const InventoryMovement = require('./InventoryMovement')(sequelize);
-const Cart = require('./Cart')(sequelize);
-const CartItem = require('./CartItem')(sequelize);
-const Order = require('./Order')(sequelize);
-const OrderItem = require('./OrderItem')(sequelize);
-const PaymentTransaction = require('./PaymentTransaction')(sequelize);
-const Notification = require('./Notification')(sequelize);
-const ActivityLog = require('./ActivityLog')(sequelize);
+User.hasMany(RefreshToken, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+RefreshToken.belongsTo(User, { foreignKey: 'user_id' });
 
-User.hasMany(RefreshToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
-RefreshToken.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Store, { foreignKey: 'vendor_id' });
+Store.belongsTo(User, { foreignKey: 'vendor_id', as: 'vendor' });
 
-User.hasMany(Store, { foreignKey: 'vendorId', as: 'stores' });
-Store.belongsTo(User, { foreignKey: 'vendorId', as: 'vendor' });
+Store.hasMany(Product, { foreignKey: 'store_id' });
+Product.belongsTo(Store, { foreignKey: 'store_id' });
 
-Store.hasMany(Product, { foreignKey: 'storeId', onDelete: 'CASCADE' });
-Product.belongsTo(Store, { foreignKey: 'storeId' });
+Product.hasMany(ProductVariant, { foreignKey: 'product_id', as: 'variants', onDelete: 'CASCADE' });
+ProductVariant.belongsTo(Product, { foreignKey: 'product_id' });
+ProductVariant.belongsTo(Store, { foreignKey: 'store_id' });
 
-Product.hasMany(ProductVariant, {
-  foreignKey: 'productId',
-  as: 'variants',
-  onDelete: 'CASCADE',
-});
-ProductVariant.belongsTo(Product, { foreignKey: 'productId' });
+ProductVariant.hasMany(InventoryMovement, { foreignKey: 'product_variant_id' });
+InventoryMovement.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
+InventoryMovement.belongsTo(Store, { foreignKey: 'store_id' });
+InventoryMovement.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
-Store.hasMany(ProductVariant, { foreignKey: 'storeId' });
-ProductVariant.belongsTo(Store, { foreignKey: 'storeId' });
+User.hasMany(Cart, { foreignKey: 'user_id' });
+Cart.belongsTo(User, { foreignKey: 'user_id' });
+Store.hasMany(Cart, { foreignKey: 'store_id' });
+Cart.belongsTo(Store, { foreignKey: 'store_id' });
 
-ProductVariant.hasMany(InventoryMovement, { foreignKey: 'productVariantId' });
-InventoryMovement.belongsTo(ProductVariant, { foreignKey: 'productVariantId' });
-Store.hasMany(InventoryMovement, { foreignKey: 'storeId' });
-InventoryMovement.belongsTo(Store, { foreignKey: 'storeId' });
-User.hasMany(InventoryMovement, { foreignKey: 'createdBy', as: 'inventoryMovements' });
-InventoryMovement.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+Cart.hasMany(CartItem, { foreignKey: 'cart_id', as: 'CartItems', onDelete: 'CASCADE' });
+CartItem.belongsTo(Cart, { foreignKey: 'cart_id' });
+ProductVariant.hasMany(CartItem, { foreignKey: 'product_variant_id' });
+CartItem.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
 
-User.hasMany(Cart, { foreignKey: 'userId' });
-Cart.belongsTo(User, { foreignKey: 'userId' });
-Store.hasMany(Cart, { foreignKey: 'storeId' });
-Cart.belongsTo(Store, { foreignKey: 'storeId' });
+User.hasMany(Notification, { foreignKey: 'user_id' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+Notification.belongsTo(Store, { foreignKey: 'store_id' });
 
-Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items', onDelete: 'CASCADE' });
-CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
-ProductVariant.hasMany(CartItem, { foreignKey: 'productVariantId' });
-CartItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId' });
+Store.hasMany(Order, { foreignKey: 'store_id' });
+Order.belongsTo(Store, { foreignKey: 'store_id' });
+User.hasMany(Order, { foreignKey: 'customer_id' });
+Order.belongsTo(User, { foreignKey: 'customer_id', as: 'customer' });
 
-User.hasMany(Order, { foreignKey: 'customerId', as: 'orders' });
-Order.belongsTo(User, { foreignKey: 'customerId', as: 'customer' });
-Store.hasMany(Order, { foreignKey: 'storeId' });
-Order.belongsTo(Store, { foreignKey: 'storeId' });
+Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
+OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
+OrderItem.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
 
-Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items', onDelete: 'CASCADE' });
-OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
-ProductVariant.hasMany(OrderItem, { foreignKey: 'productVariantId' });
-OrderItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId' });
+Order.hasMany(PaymentTransaction, { foreignKey: 'order_id' });
+PaymentTransaction.belongsTo(Order, { foreignKey: 'order_id' });
+PaymentTransaction.belongsTo(Store, { foreignKey: 'store_id' });
 
-Order.hasMany(PaymentTransaction, { foreignKey: 'orderId', as: 'payments' });
-PaymentTransaction.belongsTo(Order, { foreignKey: 'orderId' });
-Store.hasMany(PaymentTransaction, { foreignKey: 'storeId' });
-PaymentTransaction.belongsTo(Store, { foreignKey: 'storeId' });
-
-User.hasMany(Notification, { foreignKey: 'userId' });
-Notification.belongsTo(User, { foreignKey: 'userId' });
-Store.hasMany(Notification, { foreignKey: 'storeId' });
-Notification.belongsTo(Store, { foreignKey: 'storeId' });
-
-User.hasMany(ActivityLog, { foreignKey: 'userId' });
-ActivityLog.belongsTo(User, { foreignKey: 'userId' });
-Store.hasMany(ActivityLog, { foreignKey: 'storeId' });
-ActivityLog.belongsTo(Store, { foreignKey: 'storeId' });
+User.hasMany(ActivityLog, { foreignKey: 'user_id' });
+ActivityLog.belongsTo(User, { foreignKey: 'user_id' });
 
 module.exports = {
   sequelize,

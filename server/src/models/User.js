@@ -1,42 +1,53 @@
 const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-module.exports = (sequelize) => {
-  const User = sequelize.define(
-    'User',
-    {
-      id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-      email: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-        unique: true,
-        validate: { isEmail: true },
-      },
-      passwordHash: { type: DataTypes.STRING(255), allowNull: false, field: 'password_hash' },
-      name: { type: DataTypes.STRING(255), allowNull: false },
-      phone: { type: DataTypes.STRING(20) },
-      address: { type: DataTypes.TEXT },
-      role: {
-        type: DataTypes.ENUM('superadmin', 'vendor', 'staff', 'customer'),
-        allowNull: false,
-        defaultValue: 'customer',
-      },
-      status: {
-        type: DataTypes.ENUM('active', 'pending_approval', 'suspended'),
-        defaultValue: 'active',
-      },
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true,
+  },
+  email: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    unique: true,
+    validate: { isEmail: true },
+  },
+  password_hash: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+  },
+  name: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+  },
+  phone: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  role: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'customer',
+    validate: {
+      isIn: [['superadmin', 'vendor', 'staff', 'customer']],
     },
-    {
-      tableName: 'user',
-      underscored: true,
-      timestamps: true,
-      defaultScope: {
-        attributes: { exclude: ['passwordHash'] },
-      },
-      scopes: {
-        withPassword: { attributes: {} },
-      },
-    }
-  );
+  },
+  status: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'active',
+    validate: {
+      isIn: [['active', 'pending_approval', 'suspended']],
+    },
+  },
+}, {
+  tableName: 'user',
+  underscored: true,
+});
 
-  return User;
-};
+module.exports = User;

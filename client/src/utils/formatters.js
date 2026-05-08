@@ -13,6 +13,13 @@ export const formatDate = (date) =>
       }).format(new Date(date))
     : '-';
 
+export const formatEthAddress = (address) => {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+export const formatEth = (amount) => `${parseFloat(amount).toFixed(6)} ETH`;
+
 export const ORDER_STATUS_LABEL = {
   pending_payment: 'Pendiente de pago',
   paid: 'Pagado',

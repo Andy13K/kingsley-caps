@@ -45,12 +45,12 @@ class BusinessError extends AppError {
   }
 }
 
-module.exports = {
-  AppError,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-  ConflictError,
-  BusinessError,
-};
+// Compatible with both: const AppError = require(...)  AND  const { AppError } = require(...)
+module.exports = AppError;
+module.exports.AppError = AppError;
+module.exports.ValidationError = ValidationError;
+module.exports.NotFoundError = NotFoundError;
+module.exports.UnauthorizedError = UnauthorizedError;
+module.exports.ForbiddenError = ForbiddenError;
+module.exports.ConflictError = ConflictError;
+module.exports.BusinessError = BusinessError;

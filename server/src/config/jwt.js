@@ -1,13 +1,8 @@
-const {
-  JWT_ACCESS_SECRET = 'change_me_access',
-  JWT_REFRESH_SECRET = 'change_me_refresh',
-  JWT_ACCESS_EXPIRES = '15m',
-  JWT_REFRESH_EXPIRES = '7d',
-} = process.env;
-
-module.exports = {
-  accessSecret: JWT_ACCESS_SECRET,
-  refreshSecret: JWT_REFRESH_SECRET,
-  accessExpires: JWT_ACCESS_EXPIRES,
-  refreshExpires: JWT_REFRESH_EXPIRES,
+const jwtConfig = {
+  accessSecret: process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_in_prod',
+  refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_change_in_prod',
+  accessExpiresIn: process.env.JWT_ACCESS_EXPIRES || '15m',
+  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES || '7d',
 };
+
+module.exports = jwtConfig;

@@ -1,20 +1,14 @@
 const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 
-const {
-  DB_HOST = 'localhost',
-  DB_PORT = '5432',
-  DB_NAME = 'kingsley_caps_dev',
-  DB_USER = 'postgres',
-  DB_PASSWORD = '',
-  NODE_ENV = 'development',
-} = process.env;
-
-const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
-  host: DB_HOST,
-  port: Number(DB_PORT),
+const sequelize = new Sequelize({
   dialect: 'postgres',
-  logging: NODE_ENV === 'development' ? (msg) => logger.debug(msg) : false,
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  database: process.env.DB_NAME || 'kingsley_caps_dev',
+  username: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '',
+  logging: (msg) => logger.debug(msg),
   pool: {
     max: 10,
     min: 0,
@@ -24,12 +18,9 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   define: {
     underscored: true,
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   },
 });
 
-const connectDatabase = async () => {
-  await sequelize.authenticate();
-  logger.info('Conexion a PostgreSQL establecida');
-};
-
-module.exports = { sequelize, connectDatabase };
+module.exports = sequelize;

@@ -1,5 +1,12 @@
 version: '3.9'
 
+networks:
+  kingsley-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
 services:
   # ── Base de datos ─────────────────────────────────────────
   postgres:
@@ -7,15 +14,17 @@ services:
     container_name: kingsley_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: kingsley_caps_dev
-      POSTGRES_USER: postgres
+      POSTGRES_DB: ${DB_NAME:-kingsley_caps_dev}
+      POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - kingsley-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,15 +34,15 @@ services:
     image: redis:7-alpine
     container_name: kingsley_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    networks:
+      - kingsley-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ── Administración de BD (opcional, solo desarrollo) ──────
+  # ── Administración de BD (solo desarrollo) ─────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: kingsley_pgadmin
@@ -46,10 +55,125 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - kingsley-network
 
-volumes:
-  postgres_data:
+  # ── Auth Service (Node.js — puerto 3001) ───────────────────
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.auth
+    container_name: kingsley_auth
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      AUTH_PORT: 3001
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME:-kingsley_caps_dev}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kingsley-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-# Nota: Los servicios de aplicación (server, client, ai-engine)
-# se ejecutan localmente con npm run dev durante el desarrollo.
-# Para producción, agregar los servicios con sus Dockerfiles.
+  # ── Backend API (Node.js — puerto 3000) ────────────────────
+  backend-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: kingsley_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME:-kingsley_caps_dev}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret}
+      AI_ENGINE_URL: http://ia-service:8000
+      ETH_RPC_URL: ${ETH_RPC_URL:-https://rpc.sepolia.org}
+      ETH_NETWORK: ${ETH_NETWORK:-sepolia}
+      ETH_CONFIRMATIONS_REQUIRED: ${ETH_CONFIRMATIONS_REQUIRED:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ia-service:
+        condition: service_healthy
+    networks:
+      - kingsley-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── AI Engine (Python/FastAPI — puerto 8000) ───────────────
+  ia-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    container_name: kingsley_ai
+    restart: unless-stopped
+    networks:
+      - kingsley-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Frontend (React/Vite — nginx SPA) ─────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+      args:
+        VITE_API_URL: /api
+        VITE_AUTH_URL: /api/auth
+    container_name: kingsley_frontend
+    restart: unless-stopped
+    networks:
+      - kingsley-network
+
+  # ── Nginx (reverse proxy — único punto de entrada) ─────────
+  nginx:
+    image: nginx:alpine
+    container_name: kingsley_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      backend-api:
+        condition: service_healthy
+      ia-service:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - kingsley-network

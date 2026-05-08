@@ -1,25 +1,28 @@
 const rateLimit = require('express-rate-limit');
-
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas solicitudes, intenta mas tarde' },
-  },
-});
+const AppError = require('../utils/AppError');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
+  keyGenerator: (req) => {
+    const email = req.body && req.body.email ? req.body.email.toLowerCase() : 'unknown';
+    return `${req.ip}:${email}`;
+  },
+  handler: (req, res, next) => {
+    next(new AppError('Demasiados intentos. Intenta de nuevo en 15 minutos.', 429));
+  },
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: { code: 'TOO_MANY_ATTEMPTS', message: 'Bloqueado por 15 minutos' },
-  },
 });
 
-module.exports = { generalLimiter, authLimiter };
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  handler: (req, res, next) => {
+    next(new AppError('Demasiadas solicitudes. Intenta de nuevo en un momento.', 429));
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+module.exports = { authLimiter, generalLimiter };
