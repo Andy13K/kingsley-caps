@@ -5,7 +5,7 @@ const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:3001';
 
 export const authApi = axios.create({ baseURL: AUTH_URL });
 
-const api = axios.create({ baseURL: API_URL });
+const api = axios.create({ baseURL: `${API_URL}/api` });
 
 export const getAccessToken = () => localStorage.getItem('accessToken');
 export const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -43,7 +43,8 @@ api.interceptors.response.use(
     const original = error.config;
 
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(error);
+      const message = error.response?.data?.error?.message || error.message || 'Error de red';
+      return Promise.reject(new Error(message));
     }
 
     if (isRefreshing) {

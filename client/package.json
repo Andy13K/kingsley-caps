@@ -1,12 +1,13 @@
 {
   "name": "kingsley-caps-client",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src/ --ext .jsx,.js"
+    "lint": "eslint \"src/**/*.{js,jsx}\""
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
@@ -19,9 +20,11 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.0",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
-    "eslint": "^8.54.0",
+    "eslint": "^8.55.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "postcss": "^8.4.32",
