@@ -1,7 +1,12 @@
 const { Router } = require('express');
 const authenticate = require('../middleware/authenticate');
 const { validate, initiateSchema, verifySchema } = require('../validators/paymentValidator');
-const { getCryptoPrice, initiateCryptoPayment, verifyCryptoPayment, getPaymentByOrderId } = require('../controllers/paymentController');
+const {
+  getCryptoPrice,
+  initiateCryptoPayment,
+  verifyCryptoPayment,
+  getPaymentByOrderId,
+} = require('../controllers/paymentController');
 
 const router = Router();
 
