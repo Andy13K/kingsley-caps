@@ -31,15 +31,15 @@ InventoryMovement.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' }
 InventoryMovement.belongsTo(Store, { foreignKey: 'store_id' });
 InventoryMovement.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
-User.hasMany(Cart, { foreignKey: 'user_id' });
-Cart.belongsTo(User, { foreignKey: 'user_id' });
-Store.hasMany(Cart, { foreignKey: 'store_id' });
-Cart.belongsTo(Store, { foreignKey: 'store_id' });
+User.hasMany(Cart, { foreignKey: 'userId' });
+Cart.belongsTo(User, { foreignKey: 'userId' });
+Store.hasMany(Cart, { foreignKey: 'storeId' });
+Cart.belongsTo(Store, { foreignKey: 'storeId' });
 
-Cart.hasMany(CartItem, { foreignKey: 'cart_id', as: 'CartItems', onDelete: 'CASCADE' });
-CartItem.belongsTo(Cart, { foreignKey: 'cart_id' });
-ProductVariant.hasMany(CartItem, { foreignKey: 'product_variant_id' });
-CartItem.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
+Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items', onDelete: 'CASCADE' });
+CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
+ProductVariant.hasMany(CartItem, { foreignKey: 'productVariantId' });
+CartItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId' });
 
 User.hasMany(Notification, { foreignKey: 'user_id' });
 Notification.belongsTo(User, { foreignKey: 'user_id' });
@@ -54,7 +54,7 @@ Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCA
 OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
 OrderItem.belongsTo(ProductVariant, { foreignKey: 'product_variant_id' });
 
-Order.hasMany(PaymentTransaction, { foreignKey: 'order_id' });
+Order.hasMany(PaymentTransaction, { foreignKey: 'order_id', as: 'payments' });
 PaymentTransaction.belongsTo(Order, { foreignKey: 'order_id' });
 PaymentTransaction.belongsTo(Store, { foreignKey: 'store_id' });
 

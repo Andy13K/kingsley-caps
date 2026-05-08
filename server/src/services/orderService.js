@@ -75,14 +75,14 @@ const computeOrderTotals = (items, shippingAmount = 0) => {
 const createOrderItems = async ({ orderId, cartItems, transaction }) =>
   OrderItem.bulkCreate(
     cartItems.map((item) => ({
-      orderId,
-      productVariantId: item.productVariantId,
-      productName: item.ProductVariant.Product.name,
-      variantSize: item.ProductVariant.size,
-      variantColor: item.ProductVariant.color,
+      order_id: orderId,
+      product_variant_id: item.productVariantId,
+      product_name: item.ProductVariant.Product.name,
+      variant_size: item.ProductVariant.size,
+      variant_color: item.ProductVariant.color,
       sku: item.ProductVariant.sku,
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
+      unit_price: item.unitPrice,
       subtotal: Number((Number(item.unitPrice) * item.quantity).toFixed(2)),
     })),
     { transaction }
@@ -96,15 +96,15 @@ const decrementStockAndLog = async ({ cartItems, orderId, userId, storeId, trans
     await variant.update({ stock: stockAfter }, { transaction });
     await InventoryMovement.create(
       {
-        productVariantId: variant.id,
-        storeId,
+        product_variant_id: variant.id,
+        store_id: storeId,
         type: 'out',
         quantity: -item.quantity,
-        stockBefore,
-        stockAfter,
+        stock_before: stockBefore,
+        stock_after: stockAfter,
         reason: 'sale',
-        referenceId: orderId,
-        createdBy: userId,
+        reference_id: orderId,
+        created_by: userId,
       },
       { transaction }
     );
@@ -128,16 +128,16 @@ const create = async ({
 
     const order = await Order.create(
       {
-        storeId,
-        customerId: userId,
+        store_id: storeId,
+        customer_id: userId,
         status: 'pending_payment',
         subtotal,
-        shippingAmount,
+        shipping_amount: shippingAmount,
         total,
-        shippingAddress,
-        shippingMethod,
-        paymentMethod,
-        customerNotes,
+        shipping_address: shippingAddress,
+        shipping_method: shippingMethod,
+        payment_method: paymentMethod,
+        customer_notes: customerNotes,
       },
       { transaction: t }
     );
@@ -160,24 +160,24 @@ const create = async ({
 const buildListWhere = ({ user, filters }) => {
   const where = {};
   if (user.role === 'customer') {
-    where.customerId = user.id;
+    where.customer_id = user.id;
   } else if (user.role === 'vendor' || user.role === 'staff') {
     if (filters.storeId) {
-      where.storeId = filters.storeId;
+      where.store_id = filters.storeId;
     } else if (user.storeId) {
-      where.storeId = user.storeId;
+      where.store_id = user.storeId;
     }
   }
   if (filters.status) {
     where.status = filters.status;
   }
   if (filters.dateFrom || filters.dateTo) {
-    where.createdAt = {};
+    where.created_at = {};
     if (filters.dateFrom) {
-      where.createdAt[Op.gte] = filters.dateFrom;
+      where.created_at[Op.gte] = filters.dateFrom;
     }
     if (filters.dateTo) {
-      where.createdAt[Op.lte] = filters.dateTo;
+      where.created_at[Op.lte] = filters.dateTo;
     }
   }
   return where;
@@ -193,7 +193,7 @@ const list = async ({ user, filters }) => {
     include: ORDER_INCLUDE,
     limit,
     offset,
-    order: [['createdAt', 'DESC']],
+    order: [['created_at', 'DESC']],
     distinct: true,
   });
 
@@ -209,12 +209,12 @@ const assertCanAccessOrder = async (orderId, user) => {
     throw new NotFoundError('Orden');
   }
 
-  if (user.role === 'customer' && order.customerId !== user.id) {
+  if (user.role === 'customer' && order.customer_id !== user.id) {
     throw new ForbiddenError('No puedes ver una orden de otro cliente');
   }
   if (user.role === 'vendor' || user.role === 'staff') {
-    const store = await Store.findByPk(order.storeId);
-    if (!store || store.vendorId !== user.id) {
+    const store = await Store.findByPk(order.store_id);
+    if (!store || store.vendor_id !== user.id) {
       throw new ForbiddenError('La orden no pertenece a tu tienda');
     }
   }
@@ -225,18 +225,10 @@ const findById = async ({ id, user }) => assertCanAccessOrder(id, user);
 
 const transitionTimestamps = (status) => {
   const now = new Date();
-  if (status === 'paid') {
-    return { paidAt: now };
-  }
-  if (status === 'shipped') {
-    return { shippedAt: now };
-  }
-  if (status === 'delivered') {
-    return { deliveredAt: now };
-  }
-  if (status === 'cancelled') {
-    return { cancelledAt: now };
-  }
+  if (status === 'paid') return { paid_at: now };
+  if (status === 'shipped') return { shipped_at: now };
+  if (status === 'delivered') return { delivered_at: now };
+  if (status === 'cancelled') return { cancelled_at: now };
   return {};
 };
 
@@ -251,7 +243,7 @@ const updateStatus = async ({ id, user, status, vendorNotes }) => {
     );
   }
 
-  await order.update({ status, vendorNotes, ...transitionTimestamps(status) });
+  await order.update({ status, vendor_notes: vendorNotes, ...transitionTimestamps(status) });
   return order;
 };
 
@@ -263,29 +255,27 @@ const setTracking = async ({ id, user, trackingNumber, trackingCompany }) => {
       'INVALID_STATUS_FOR_TRACKING'
     );
   }
-  await order.update({ trackingNumber, trackingCompany });
+  await order.update({ tracking_number: trackingNumber, tracking_company: trackingCompany });
   return order;
 };
 
 const restoreStock = async ({ order, transaction }) => {
   for (const item of order.items) {
-    const variant = await ProductVariant.findByPk(item.productVariantId, { transaction });
-    if (!variant) {
-      continue;
-    }
+    const variant = await ProductVariant.findByPk(item.product_variant_id, { transaction });
+    if (!variant) continue;
     const stockBefore = variant.stock;
     const stockAfter = stockBefore + item.quantity;
     await variant.update({ stock: stockAfter }, { transaction });
     await InventoryMovement.create(
       {
-        productVariantId: variant.id,
-        storeId: order.storeId,
+        product_variant_id: variant.id,
+        store_id: order.store_id,
         type: 'in',
         quantity: item.quantity,
-        stockBefore,
-        stockAfter,
+        stock_before: stockBefore,
+        stock_after: stockAfter,
         reason: 'cancel',
-        referenceId: order.id,
+        reference_id: order.id,
       },
       { transaction }
     );
@@ -301,15 +291,12 @@ const cancel = async ({ id, user }) => {
         'CANNOT_CANCEL'
       );
     }
-    if (user.role === 'customer' && order.customerId !== user.id) {
+    if (user.role === 'customer' && order.customer_id !== user.id) {
       throw new ForbiddenError();
     }
 
     await restoreStock({ order, transaction: t });
-    await order.update(
-      { status: 'cancelled', cancelledAt: new Date() },
-      { transaction: t }
-    );
+    await order.update({ status: 'cancelled', cancelled_at: new Date() }, { transaction: t });
     return order;
   });
 };

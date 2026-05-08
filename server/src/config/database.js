@@ -23,4 +23,12 @@ const sequelize = new Sequelize({
   },
 });
 
+const connectDatabase = async () => {
+  await sequelize.authenticate();
+  logger.info('Conexion a PostgreSQL establecida');
+};
+
+// Soporta ambos patrones: const seq = require(...) y const { sequelize } = require(...)
 module.exports = sequelize;
+module.exports.sequelize = sequelize;
+module.exports.connectDatabase = connectDatabase;

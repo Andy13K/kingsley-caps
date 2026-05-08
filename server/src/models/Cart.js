@@ -3,8 +3,8 @@ const sequelize = require('../config/database');
 
 const Cart = sequelize.define('Cart', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  user_id: { type: DataTypes.UUID, allowNull: false },
-  store_id: { type: DataTypes.UUID, allowNull: false },
+  userId: { type: DataTypes.UUID, allowNull: false },
+  storeId: { type: DataTypes.UUID, allowNull: false },
 }, {
   tableName: 'cart',
   underscored: true,

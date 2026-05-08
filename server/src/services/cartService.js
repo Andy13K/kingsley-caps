@@ -39,7 +39,7 @@ const getCart = async ({ userId, storeId }) => {
 };
 
 const resolveUnitPrice = (variant) =>
-  Number(variant.priceOverride ?? variant.Product.basePrice);
+  Number(variant.price_override ?? variant.Product.base_price);
 
 const addItem = async ({ userId, storeId, productVariantId, quantity }) => {
   return sequelize.transaction(async (t) => {
@@ -48,7 +48,7 @@ const addItem = async ({ userId, storeId, productVariantId, quantity }) => {
       transaction: t,
     });
 
-    if (!variant || variant.storeId !== storeId) {
+    if (!variant || variant.store_id !== storeId) {
       throw new NotFoundError('Variante de producto');
     }
     if (!variant.active) {
@@ -102,7 +102,7 @@ const findItemForUser = async ({ itemId, userId, transaction }) => {
   if (!item) {
     throw new NotFoundError('Item del carrito');
   }
-  if (item.Cart.userId !== userId) {
+  if (item.Cart.userId !== userId) { // Cart.userId es camelCase (modelo propio)
     throw new ForbiddenError('No puedes modificar items ajenos');
   }
   return item;
