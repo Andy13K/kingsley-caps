@@ -9,7 +9,7 @@ Plataforma multi-tenant de e-commerce para gorras con pagos en criptomonedas.
 | Integrante | Carnet |
 |-----------|--------|
 | Andy Fabricio Aquino Escobar | 0909-22-1669 |
-| Carlos Giovanni Martínez Aldana | 0909-22-19157 |
+| Claue IA | 0909-22-19157 |
 | Erick Andrey Ortiz Guerra | 0909-22-17063 |
 
 Curso: Ingeniería de Software — UMG Puerto Barrios, 2026
