@@ -1,21 +1,18 @@
-const winston = require('winston');
+const { createLogger, format, transports } = require('winston');
 
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
+const { LOG_LEVEL = 'info', NODE_ENV = 'development' } = process.env;
+
+const logger = createLogger({
+  level: LOG_LEVEL,
+  format: format.combine(
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.splat(),
+    NODE_ENV === 'development'
+      ? format.combine(format.colorize(), format.simple())
+      : format.json()
   ),
-  defaultMeta: { service: 'auth-service' },
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    }),
-  ],
+  transports: [new transports.Console()],
 });
 
 module.exports = logger;

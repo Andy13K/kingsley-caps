@@ -1,34 +1,29 @@
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
-const AppError = require('../utils/AppError');
-const asyncHandler = require('../utils/asyncHandler');
-const User = require('../models/User');
+const { UnauthorizedError } = require('../utils/AppError');
 
-const authenticate = asyncHandler(async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AppError('Token de autenticación requerido', 401);
+const authenticate = (req, res, next) => {
+  const header = req.header('Authorization');
+  if (!header || !header.startsWith('Bearer ')) {
+    return next(new UnauthorizedError('Token de acceso requerido'));
   }
 
-  const token = authHeader.split(' ')[1];
-  let payload;
-
+  const token = header.slice(7);
   try {
-    payload = jwt.verify(token, jwtConfig.accessSecret);
+    const payload = jwt.verify(token, jwtConfig.accessSecret);
+    req.user = {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      storeId: payload.storeId,
+    };
+    return next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      throw new AppError('Token expirado', 401);
+      return next(new UnauthorizedError('Token expirado'));
     }
-    throw new AppError('Token inválido', 401);
+    return next(new UnauthorizedError('Token invalido'));
   }
-
-  const user = await User.findByPk(payload.sub);
-  if (!user || user.status !== 'active') {
-    throw new AppError('Usuario no encontrado o inactivo', 401);
-  }
-
-  req.user = user;
-  next();
-});
+};
 
 module.exports = authenticate;
