@@ -1,7 +1,7 @@
 const variants = {
   primary:   'bg-charcoal-950 dark:bg-zinc-100 text-white dark:text-charcoal-950 hover:bg-charcoal-900 dark:hover:bg-white active:scale-[0.98] focus-visible:ring-charcoal-950',
   blue:      'bg-blue-dark text-white hover:bg-blue active:scale-[0.98] focus-visible:ring-blue dark:bg-blue dark:hover:bg-blue-dark',
-  gold:      'bg-gold text-white hover:bg-gold-dark active:scale-[0.98] focus-visible:ring-gold',
+  gold:      'bg-gold text-white hover:bg-gold-dark active:scale-[0.98] focus-visible:ring-gold dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold',
   outline:   'border border-charcoal-200 dark:border-zinc-600 text-charcoal-950 dark:text-zinc-100 hover:bg-charcoal-50 dark:hover:bg-charcoal-800 active:scale-[0.98] focus-visible:ring-charcoal-950',
   ghost:     'text-charcoal-900 dark:text-zinc-300 hover:bg-charcoal-50 dark:hover:bg-charcoal-800 active:scale-[0.98] focus-visible:ring-charcoal-900',
   danger:    'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98] focus-visible:ring-red-600',

@@ -1,13 +1,20 @@
 import { useState, useCallback } from 'react';
 import api from '../services/api';
 
-const MOCK_ORDERS = [
-  { id: 'ord-0001-uuid', customer_name: 'Ana García', created_at: new Date(Date.now() - 3600000).toISOString(), total_fiat: 450, payment_method: 'crypto_eth', status: 'paid' },
-  { id: 'ord-0002-uuid', customer_name: 'Luis Pérez', created_at: new Date(Date.now() - 86400000).toISOString(), total_fiat: 900, payment_method: 'card', status: 'preparing' },
-  { id: 'ord-0003-uuid', customer_name: 'María López', created_at: new Date(Date.now() - 172800000).toISOString(), total_fiat: 225, payment_method: 'crypto_eth', status: 'shipped' },
-  { id: 'ord-0004-uuid', customer_name: 'Carlos Ruiz', created_at: new Date(Date.now() - 259200000).toISOString(), total_fiat: 675, payment_method: 'card', status: 'delivered' },
-  { id: 'ord-0005-uuid', customer_name: 'Sofia Chen', created_at: new Date(Date.now() - 345600000).toISOString(), total_fiat: 450, payment_method: 'crypto_eth', status: 'pending_payment' },
-];
+const normalizeOrder = (order) => ({
+  ...order,
+  customer_name: order.customer_name ?? order.customer?.name ?? order.customer?.email ?? 'Cliente',
+  total_fiat: Number(order.total_fiat ?? order.total ?? 0),
+  platform_fee_amount: Number(order.platform_fee_amount ?? 0),
+  vendor_payout_amount: Number(order.vendor_payout_amount ?? 0),
+  payment_method: order.payment_method ?? order.paymentMethod,
+  created_at: order.created_at ?? order.createdAt,
+  tracking: order.tracking ?? (order.tracking_number ? {
+    tracking_number: order.tracking_number,
+    carrier: order.tracking_company,
+  } : null),
+  items: order.items ?? [],
+});
 
 export default function useVendorOrders() {
   const [orders, setOrders] = useState([]);
@@ -21,26 +28,34 @@ export default function useVendorOrders() {
     try {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
-      const { data } = await api.get(`/api/orders?${params.toString()}`);
-      setOrders(data.data.orders || data.data || []);
+      const { data } = await api.get(`/orders?${params.toString()}`);
+      const rows = Array.isArray(data.data) ? data.data : data.data.orders ?? [];
+      setOrders(rows.map(normalizeOrder));
       if (data.meta) setPagination({ page: data.meta.page, total: data.meta.total, totalPages: data.meta.totalPages });
-    } catch {
-      setOrders(MOCK_ORDERS);
-      setError('mock');
+    } catch (err) {
+      setOrders([]);
+      setError(err.message || 'No se pudieron cargar las ordenes.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   const updateOrderStatus = useCallback(async (orderId, status) => {
-    const { data } = await api.put(`/api/orders/${orderId}/status`, { status });
+    const { data } = await api.put(`/orders/${orderId}/status`, { status });
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     return data;
   }, []);
 
   const addTracking = useCallback(async (orderId, trackingData) => {
-    const { data } = await api.put(`/api/shipping/orders/${orderId}/tracking`, trackingData);
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'shipped', tracking: trackingData } : o)));
+    const { data } = await api.put(`/shipping/orders/${orderId}/tracking`, trackingData);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? {
+      ...o,
+      status: 'shipped',
+      tracking: {
+        tracking_number: trackingData.trackingNumber,
+        carrier: trackingData.trackingCompany,
+      },
+    } : o)));
     return data;
   }, []);
 

@@ -14,34 +14,23 @@ const EMPTY_SHIPPING = { name: '', address: '', city: '', phone: '' };
 const validateShipping = (data) => {
   const errors = {};
   if (!data.name.trim()) errors.name = 'Nombre requerido';
-  if (!data.address.trim()) errors.address = 'Dirección requerida';
+  if (!data.address.trim()) errors.address = 'Direccion requerida';
   if (!data.city.trim()) errors.city = 'Ciudad requerida';
-  if (!data.phone.trim()) errors.phone = 'Teléfono requerido';
+  if (!data.phone.trim()) errors.phone = 'Telefono requerido';
   return errors;
 };
 
-const buildMockOrder = (items, total, shipping, paymentMethod) => ({
-  id: `ORD-${Date.now().toString(36).toUpperCase()}`,
-  status: paymentMethod === 'transfer' ? 'pending_payment' : 'paid',
-  total,
-  paymentMethod,
-  items: items.map((i) => ({
-    productName: i.name,
-    variantSize: i.size,
-    variantColor: i.color,
-    quantity: i.quantity,
-    unitPrice: i.price,
-    subtotal: i.price * i.quantity,
-  })),
-  shippingAddress: shipping,
-  createdAt: new Date().toISOString(),
-});
-
 export default function Checkout() {
   const { items, total, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [shipping, setShipping] = useState(EMPTY_SHIPPING);
+  const [shipping, setShipping] = useState({
+    ...EMPTY_SHIPPING,
+    name: user?.name ?? '',
+    address: user?.address ?? '',
+    phone: user?.phone ?? '',
+  });
   const [shippingErrors, setShippingErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState('crypto_eth');
   const [submitting, setSubmitting] = useState(false);
@@ -54,32 +43,42 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errors = validateShipping(shipping);
-    if (Object.keys(errors).length > 0) { setShippingErrors(errors); return; }
-
-    if (paymentMethod === 'crypto_eth') {
-      navigate('/checkout/crypto', { state: { shipping, items, total } });
+    if (Object.keys(errors).length > 0) {
+      setShippingErrors(errors);
       return;
     }
 
     setSubmitting(true);
     try {
+      const storeIds = [...new Set(items.map((i) => i.storeId).filter(Boolean))];
+      if (storeIds.length !== 1) {
+        toast.error('Tu carrito debe contener productos de una sola tienda para crear la orden.');
+        return;
+      }
+
       const { data } = await api.post('/orders', {
-        items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity, unitPrice: i.price })),
+        storeId: storeIds[0],
+        items: items.map((i) => ({
+          variantId: i.variantId,
+          quantity: i.quantity,
+          unitPrice: i.price,
+        })),
         shippingAddress: shipping,
         paymentMethod,
-        total,
+        shippingMethod: 'standard',
+        shippingAmount: 0,
       });
+
+      const order = data.data.order;
+      if (paymentMethod === 'crypto_eth') {
+        navigate('/checkout/crypto', { state: { order, total: Number(order.total ?? total) } });
+        return;
+      }
+
       clearCart();
-      navigate('/order-confirmation', { state: { order: data.data.order }, replace: true });
-    } catch {
-      const mockOrder = buildMockOrder(items, total, shipping, paymentMethod);
-      clearCart();
-      toast.success(
-        paymentMethod === 'transfer'
-          ? 'Orden creada. Realiza la transferencia para confirmar.'
-          : '¡Pago con tarjeta procesado con éxito!'
-      );
-      navigate('/order-confirmation', { state: { order: mockOrder }, replace: true });
+      navigate('/order-confirmation', { state: { order }, replace: true });
+    } catch (err) {
+      toast.error(err.message || 'No se pudo crear la orden. Revisa el carrito e intenta de nuevo.');
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +88,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
       <div className="bg-white dark:bg-charcoal-950 border-b border-charcoal-100 dark:border-white/10 py-12 px-4">
         <div className="max-w-5xl mx-auto">
-          <span className="text-gold text-xs font-semibold uppercase tracking-widest">Finalizar compra</span>
+          <span className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest">Finalizar compra</span>
           <h1 className="text-4xl font-black text-charcoal-950 dark:text-white tracking-tight mt-1">Checkout</h1>
         </div>
       </div>
@@ -126,7 +125,7 @@ export default function Checkout() {
                     {items.map((item) => (
                       <div key={item.variantId} className="flex justify-between text-sm">
                         <span className="text-charcoal-800 dark:text-zinc-300 truncate mr-2">
-                          {item.name} ×{item.quantity}
+                          {item.name} x{item.quantity}
                         </span>
                         <span className="flex-shrink-0 font-semibold text-charcoal-950 dark:text-zinc-50">
                           {formatCurrency(item.price * item.quantity)}
@@ -147,7 +146,7 @@ export default function Checkout() {
                     className="w-full"
                     loading={submitting}
                   >
-                    {paymentMethod === 'crypto_eth' ? 'Continuar con ETH' : 'Confirmar pedido'}
+                    {paymentMethod === 'crypto_eth' ? 'Crear orden y pagar ETH' : 'Crear orden'}
                   </Button>
 
                   <Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => navigate('/cart')} disabled={submitting}>

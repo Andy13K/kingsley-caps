@@ -1,5 +1,4 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
-import { mockRegister, mockLogin, mockLogout } from '../services/mockAuth';
 import { authApi, setTokens, clearTokens, getRefreshToken } from '../services/api';
 
 export const AuthContext = createContext(null);
@@ -18,14 +17,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password) => {
-    let result;
-    try {
-      const { data } = await authApi.post('/api/auth/login', { email, password });
-      result = data.data;
-    } catch (err) {
-      if (err.response) throw err;
-      result = await mockLogin({ email, password });
-    }
+    const { data } = await authApi.post('/api/auth/login', { email, password });
+    const result = data.data;
     setTokens(result.accessToken, result.refreshToken);
     localStorage.setItem('user', JSON.stringify(result.user));
     setUser(result.user);
@@ -33,14 +26,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (formData) => {
-    let result;
-    try {
-      const { data } = await authApi.post('/api/auth/register', formData);
-      result = data.data;
-    } catch (err) {
-      if (err.response) throw err;
-      result = await mockRegister(formData);
-    }
+    const { data } = await authApi.post('/api/auth/register', formData);
+    const result = data.data;
     if (result.accessToken && result.refreshToken) {
       setTokens(result.accessToken, result.refreshToken);
       localStorage.setItem('user', JSON.stringify(result.user));
@@ -52,10 +39,10 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     try {
       await authApi.post('/api/auth/logout', { refreshToken: getRefreshToken() });
-    } catch {
-      await mockLogout();
+    } finally {
+      clearTokens();
+      setUser(null);
     }
-    finally { clearTokens(); setUser(null); }
   }, []);
 
   return (

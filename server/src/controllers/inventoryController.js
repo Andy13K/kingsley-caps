@@ -16,6 +16,20 @@ const getVariantStock = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { variant } });
 });
 
+const serializeVariant = (variant) => {
+  const json = variant.toJSON ? variant.toJSON() : variant;
+  return {
+    ...json,
+    product_name: json.Product?.name || json.product_name,
+  };
+};
+
+const listVariants = asyncHandler(async (req, res) => {
+  const store = await getStoreForVendor(req.user.id);
+  const variants = await inventoryService.listVariants({ storeId: store.id });
+  res.json({ success: true, data: { variants: variants.map(serializeVariant) } });
+});
+
 const adjustStock = asyncHandler(async (req, res) => {
   const { variantId } = req.params;
   const { quantity, type, reason } = req.body;
@@ -34,7 +48,7 @@ const adjustStock = asyncHandler(async (req, res) => {
 const getAlerts = asyncHandler(async (req, res) => {
   const store = await getStoreForVendor(req.user.id);
   const alerts = await inventoryService.getAlerts({ storeId: store.id });
-  res.json({ success: true, data: { alerts, count: alerts.length } });
+  res.json({ success: true, data: { alerts: alerts.map(serializeVariant), count: alerts.length } });
 });
 
 const getMovements = asyncHandler(async (req, res) => {
@@ -50,4 +64,4 @@ const getMovements = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getVariantStock, adjustStock, getAlerts, getMovements };
+module.exports = { listVariants, getVariantStock, adjustStock, getAlerts, getMovements };

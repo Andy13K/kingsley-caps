@@ -1,6 +1,7 @@
 const Joi = require('joi');
 
 const variantSchema = Joi.object({
+  id: Joi.string().uuid(),
   size: Joi.string().max(10).allow(null, ''),
   color: Joi.string().max(50).allow(null, ''),
   sku: Joi.string().max(100).required(),
@@ -15,7 +16,7 @@ const createProductSchema = Joi.object({
   description: Joi.string().max(5000).allow('', null),
   basePrice: Joi.number().precision(2).min(0).required(),
   category: Joi.string().max(100).allow('', null),
-  images: Joi.array().items(Joi.string().uri()).default([]),
+  images: Joi.array().items(Joi.string().max(500)).min(3).max(5).required(),
   tags: Joi.array().items(Joi.string()).default([]),
   featured: Joi.boolean().default(false),
   status: Joi.string().valid('draft', 'active', 'archived').default('draft'),
@@ -27,10 +28,11 @@ const updateProductSchema = Joi.object({
   description: Joi.string().max(5000).allow('', null),
   basePrice: Joi.number().precision(2).min(0),
   category: Joi.string().max(100).allow('', null),
-  images: Joi.array().items(Joi.string().uri()),
+  images: Joi.array().items(Joi.string().max(500)).min(3).max(5),
   tags: Joi.array().items(Joi.string()),
   featured: Joi.boolean(),
   status: Joi.string().valid('draft', 'active', 'archived'),
+  variants: Joi.array().items(variantSchema).min(1),
 }).min(1);
 
 const listProductsSchema = Joi.object({
@@ -39,6 +41,7 @@ const listProductsSchema = Joi.object({
   minPrice: Joi.number().min(0),
   maxPrice: Joi.number().min(0),
   available: Joi.boolean(),
+  featured: Joi.boolean(),
   search: Joi.string().min(1).max(100),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(10),

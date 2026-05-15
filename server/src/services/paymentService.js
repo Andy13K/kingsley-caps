@@ -2,11 +2,9 @@ const { v4: uuidv4 } = require('uuid');
 const { Order, Store, PaymentTransaction, Notification, User } = require('../models');
 const blockchainService = require('./blockchainService');
 const priceService = require('./priceService');
+const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
-
-// TODO: use inventoryService for stock reservation/release when integrated
-// const inventoryService = require('./inventoryService');
 
 const CRYPTO_ERROR_MESSAGES = {
   'ERR-C01': 'Transacción no encontrada en la blockchain',
@@ -61,6 +59,7 @@ const initiateCryptoPayment = async ({ orderId, userId }) => {
   return {
     paymentId: payment.id,
     walletAddress,
+    walletTo: walletAddress,
     amountEth,
     amountGtq: order.total,
     exchangeRate: rate.eth_gtq,
@@ -110,22 +109,28 @@ const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
 
   if (result.code === 'ERR-C06') {
     await payment.update({ status: 'discrepancy', tx_hash: txHash });
-
-    const superadmin = await User.findOne({ where: { role: 'superadmin' }, attributes: ['id'] });
-    if (superadmin) {
-      await Notification.create({
-        user_id: superadmin.id,
-        store_id: payment.store_id,
-        type: 'payment_discrepancy',
-        title: 'Discrepancia en pago crypto',
-        message: `Pago ${payment.id} con discrepancia: esperado ${payment.amount_crypto} ETH, recibido ${result.received} ETH`,
-        metadata: {
-          paymentId: payment.id,
-          txHash,
-          expected: payment.amount_crypto,
-          received: result.received,
-        },
-      });
+    try {
+      await notificationService.createDiscrepancyAlert({ payment, order: payment.Order });
+    } catch (err) {
+      logger.error(`Could not create discrepancy notification for payment ${paymentId}: ${err.message}`);
+      const superadmin = typeof User.findOne === 'function'
+        ? await User.findOne({ where: { role: 'superadmin' }, attributes: ['id'] })
+        : null;
+      if (superadmin && typeof Notification.create === 'function') {
+        await Notification.create({
+          user_id: superadmin.id,
+          store_id: payment.store_id,
+          type: 'payment_discrepancy',
+          title: 'Discrepancia en pago crypto',
+          message: `Pago ${payment.id} con discrepancia: esperado ${payment.amount_crypto} ETH, recibido ${result.received} ETH`,
+          metadata: {
+            paymentId: payment.id,
+            txHash,
+            expected: payment.amount_crypto,
+            received: result.received,
+          },
+        });
+      }
     }
 
     logger.warn(`Payment discrepancy detected for payment ${paymentId}`);
@@ -152,11 +157,25 @@ const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
     paid_at: confirmedAt,
     payment_method: 'crypto_eth',
   });
+  if (typeof payment.Order.reload === 'function') {
+    await payment.Order.reload();
+  } else {
+    payment.Order.status = 'paid';
+    payment.Order.paid_at = confirmedAt;
+    payment.Order.payment_method = 'crypto_eth';
+  }
+  try {
+    await notificationService.createPaymentConfirmedNotification({ order: payment.Order, payment });
+  } catch (err) {
+    logger.error(`Could not create payment notification for payment ${paymentId}: ${err.message}`);
+  }
 
   logger.info(`Payment ${paymentId} confirmed for order ${payment.order_id}`);
 
   return {
     orderId: payment.order_id,
+    order: payment.Order,
+    payment,
     status: 'paid',
     confirmedAt,
   };

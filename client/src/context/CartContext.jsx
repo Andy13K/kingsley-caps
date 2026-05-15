@@ -1,38 +1,97 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import { AuthContext } from './AuthContext';
+import api from '../services/api';
 
 export const CartContext = createContext(null);
 
-const loadCart = () => {
-  try {
-    const stored = localStorage.getItem('cart');
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
+const normalizeCartItem = (item) => {
+  const variant = item.ProductVariant ?? item.productVariant ?? {};
+  const product = variant.Product ?? variant.product ?? {};
+  return {
+    cartItemId: item.id,
+    variantId: item.productVariantId ?? item.product_variant_id ?? variant.id,
+    productId: product.id ?? variant.product_id,
+    storeId: product.store_id ?? product.storeId ?? variant.store_id ?? variant.storeId,
+    name: product.name ?? 'Producto',
+    size: variant.size,
+    color: variant.color,
+    price: Number(item.unitPrice ?? item.unit_price ?? variant.price_override ?? product.base_price ?? 0),
+    stock: Number(variant.stock ?? 0),
+    image: product.images?.[0] ?? null,
+    quantity: Number(item.quantity ?? 1),
+  };
 };
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState(loadCart);
+  const { isAuthenticated } = useContext(AuthContext);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const syncCart = useCallback(async (storeId) => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return [];
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get('/cart', { params: storeId ? { storeId } : {} });
+      const synced = (data.data.items ?? []).map(normalizeCartItem);
+      setItems(synced);
+      return synced;
+    } catch (err) {
+      setItems([]);
+      setError(err.message || 'No se pudo cargar el carrito.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(items));
-  }, [items]);
+    if (isAuthenticated) {
+      syncCart().catch(() => {});
+    } else {
+      setItems([]);
+    }
+  }, [isAuthenticated, syncCart]);
 
-  const addItem = useCallback((product, variant, quantity = 1) => {
+  const addItem = useCallback(async (product, variant, quantity = 1) => {
+    if (!isAuthenticated) {
+      throw new Error('Debes iniciar sesion para agregar productos al carrito.');
+    }
+
+    const storeId = product.store_id ?? product.storeId ?? variant.store_id ?? variant.storeId;
+    if (!storeId) {
+      throw new Error('El producto no tiene tienda asociada.');
+    }
+
+    setError(null);
+    const { data } = await api.post('/cart/items', {
+      storeId,
+      productVariantId: variant.id,
+      quantity,
+    });
+
+    const cartItemId = data.data.id;
     setItems((prev) => {
       const existing = prev.find((i) => i.variantId === variant.id);
       if (existing) {
         return prev.map((i) =>
           i.variantId === variant.id
-            ? { ...i, quantity: Math.min(i.quantity + quantity, variant.stock) }
+            ? { ...i, cartItemId: i.cartItemId ?? cartItemId, quantity: Math.min(i.quantity + quantity, variant.stock) }
             : i
         );
       }
       return [
         ...prev,
         {
+          cartItemId,
           variantId: variant.id,
           productId: product.id,
+          storeId,
           name: product.name,
           size: variant.size,
           color: variant.color,
@@ -43,28 +102,41 @@ export function CartProvider({ children }) {
         },
       ];
     });
-  }, []);
+  }, [isAuthenticated]);
 
-  const removeItem = useCallback((variantId) => {
+  const removeItem = useCallback(async (variantId) => {
+    const existing = items.find((i) => i.variantId === variantId);
+    if (!existing?.cartItemId) return;
+
+    setError(null);
+    await api.delete(`/cart/items/${existing.cartItemId}`);
     setItems((prev) => prev.filter((i) => i.variantId !== variantId));
-  }, []);
+  }, [items]);
 
-  const updateQuantity = useCallback((variantId, quantity) => {
+  const updateQuantity = useCallback(async (variantId, quantity) => {
     if (quantity < 1) return;
+    const existing = items.find((i) => i.variantId === variantId);
+    if (!existing?.cartItemId) return;
+
+    const nextQuantity = Math.min(quantity, existing.stock);
+    setError(null);
+    await api.put(`/cart/items/${existing.cartItemId}`, { quantity: nextQuantity });
     setItems((prev) =>
-      prev.map((i) =>
-        i.variantId === variantId ? { ...i, quantity: Math.min(quantity, i.stock) } : i
-      )
+      prev.map((i) => (i.variantId === variantId ? { ...i, quantity: nextQuantity } : i))
     );
+  }, [items]);
+
+  const clearCart = useCallback(async () => {
+    setError(null);
+    await api.delete('/cart');
+    setItems([]);
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
-
-  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const count = items.reduce((sum, i) => sum + i.quantity, 0);
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const count = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, total, count, addItem, removeItem, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ items, total, count, loading, error, addItem, removeItem, updateQuantity, clearCart, syncCart }}>
       {children}
     </CartContext.Provider>
   );

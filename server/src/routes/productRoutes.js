@@ -3,6 +3,7 @@ const router = require('express').Router();
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
+const uploadProductImages = require('../middleware/uploadProductImages');
 const productController = require('../controllers/productController');
 const {
   createProductSchema,
@@ -11,7 +12,16 @@ const {
 } = require('../utils/validators/productValidator');
 
 router.get('/', validate(listProductsSchema, 'query'), productController.list);
+router.get('/vendor/mine', authenticate, authorize('vendor'), productController.listMine);
 router.get('/:id', productController.getById);
+
+router.post(
+  '/images',
+  authenticate,
+  authorize('vendor'),
+  uploadProductImages.array('images', 5),
+  productController.uploadImages
+);
 
 router.post(
   '/',

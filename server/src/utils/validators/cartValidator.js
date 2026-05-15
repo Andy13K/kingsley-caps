@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 const getCartSchema = Joi.object({
-  storeId: Joi.string().uuid().required(),
+  storeId: Joi.string().uuid(),
 });
 
 const addItemSchema = Joi.object({
@@ -15,7 +15,7 @@ const updateItemSchema = Joi.object({
 });
 
 const clearCartSchema = Joi.object({
-  storeId: Joi.string().uuid().required(),
+  storeId: Joi.string().uuid(),
 });
 
 module.exports = {

@@ -9,20 +9,20 @@ export default function CryptoCheckout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!state?.total) navigate('/checkout', { replace: true });
+    if (!state?.order?.id) navigate('/checkout', { replace: true });
   }, [state, navigate]);
 
-  if (!state?.total) return null;
-  const { shipping, items, total } = state;
+  if (!state?.order?.id) return null;
+  const { order, total } = state;
 
   return (
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
       <div className="bg-white dark:bg-charcoal-950 border-b border-charcoal-100 dark:border-white/10 py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <span className="text-gold text-xs font-semibold uppercase tracking-widest">Web3 Payment</span>
+          <span className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest">Web3 Payment</span>
           <h1 className="text-4xl font-black text-charcoal-950 dark:text-white tracking-tight mt-1">Pagar con ETH</h1>
           <p className="text-charcoal-800 dark:text-zinc-400 text-sm mt-2">
-            Red Sepolia Testnet · Total: <span className="text-blue-light font-bold">{formatCurrency(total)}</span>
+            Red Sepolia Testnet - Total: <span className="text-blue-light font-bold">{formatCurrency(total ?? order.total)}</span>
           </p>
         </div>
       </div>
@@ -33,7 +33,7 @@ export default function CryptoCheckout() {
             Volver al checkout
           </Button>
         </div>
-        <CryptoPayment shipping={shipping} items={items} total={total} />
+        <CryptoPayment order={order} total={Number(total ?? order.total)} />
       </div>
     </div>
   );

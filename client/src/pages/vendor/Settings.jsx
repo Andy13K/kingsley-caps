@@ -9,6 +9,7 @@ const DEFAULT_STORE = {
   name: '',
   description: '',
   logo_url: '',
+  status: 'draft',
   crypto_enabled: false,
   eth_wallet_address: '',
   required_confirmations: 3,
@@ -23,23 +24,32 @@ export default function VendorSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [ethError, setEthError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [hasStore, setHasStore] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await api.get('/api/stores/my');
+        const { data } = await api.get('/stores/my');
         const s = data.data;
+        setHasStore(true);
         setStore({
           name: s.name || '',
           description: s.description || '',
           logo_url: s.logo_url || '',
+          status: s.status || 'draft',
           crypto_enabled: s.crypto_enabled ?? false,
           eth_wallet_address: s.eth_wallet_address || '',
-          required_confirmations: s.required_confirmations ?? 3,
+          required_confirmations: s.eth_confirmations_required ?? s.required_confirmations ?? 3,
           shipping_methods: s.shipping_methods?.length ? s.shipping_methods : DEFAULT_STORE.shipping_methods,
         });
-      } catch {
-        // keep defaults — mock data
+      } catch (err) {
+        if ((err.message || '').toLowerCase().includes('tienda')) {
+          setHasStore(false);
+          setLoadError('Aun no tienes tienda. Completa el formulario para crearla.');
+        } else {
+          setLoadError(err.message || 'No se pudo cargar la tienda.');
+        }
       } finally {
         setLoading(false);
       }
@@ -61,8 +71,26 @@ export default function VendorSettings() {
     if (store.crypto_enabled && !validateEth(store.eth_wallet_address)) return;
     setSaving(true);
     try {
-      await api.put('/api/stores/my', store);
+      if (!hasStore) {
+        await api.post('/stores', {
+          name: store.name,
+          description: store.description,
+          logo_url: store.logo_url || null,
+        });
+        setHasStore(true);
+      }
+
+      await api.put('/stores/my', {
+        name: store.name,
+        description: store.description,
+        logo_url: store.logo_url,
+        shipping_methods: store.shipping_methods,
+        crypto_enabled: store.crypto_enabled,
+        eth_wallet_address: store.eth_wallet_address,
+        eth_confirmations_required: store.required_confirmations,
+      });
       toast.success('Configuración guardada');
+      setLoadError('');
     } catch {
       toast.error('Error al guardar configuración');
     } finally {
@@ -89,10 +117,10 @@ export default function VendorSettings() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><Spinner size="lg" className="text-gold" /></div>;
+    return <div className="flex justify-center items-center h-64"><Spinner size="lg" className="text-gold dark:text-gold-light" /></div>;
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40';
+  const inputCls = 'w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder:text-charcoal-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40';
   const labelCls = 'block text-sm font-medium text-charcoal-700 dark:text-zinc-300 mb-1';
 
   return (
@@ -100,6 +128,22 @@ export default function VendorSettings() {
       <div>
         <h1 className="text-2xl font-bold text-charcoal-950 dark:text-white">Configuración</h1>
         <p className="text-sm text-charcoal-500 dark:text-zinc-400 mt-1">Administra los datos y preferencias de tu tienda</p>
+      </div>
+
+      {loadError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
+          {loadError}
+        </div>
+      )}
+
+      <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
+        <p className="font-semibold text-white">Aprobacion y comision</p>
+        <p className="mt-1">
+          Tu tienda queda pendiente hasta que el administrador la apruebe. Mientras este pendiente, tus productos se guardan pero no aparecen en el catalogo publico.
+        </p>
+        <p className="mt-1">
+          Kingsley retiene una comision del 10% sobre el subtotal de productos de cada orden; el resto se calcula como monto a liquidar al vendedor.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -177,7 +221,7 @@ export default function VendorSettings() {
         <section className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-charcoal-950 dark:text-white">Métodos de envío</h2>
-            <button type="button" onClick={addShippingMethod} className="text-xs font-medium text-gold hover:text-gold-dark transition-colors">
+            <button type="button" onClick={addShippingMethod} className="text-xs font-medium text-gold dark:text-gold-light hover:text-gold-dark dark:hover:text-gold-light transition-colors">
               + Agregar método
             </button>
           </div>
@@ -234,7 +278,7 @@ export default function VendorSettings() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full sm:w-auto px-8 py-2.5 text-sm font-semibold bg-gold hover:bg-gold-dark text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full sm:w-auto px-8 py-2.5 text-sm font-semibold bg-gold hover:bg-gold-dark text-white dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {saving ? <Spinner size="sm" /> : null}
           Guardar cambios

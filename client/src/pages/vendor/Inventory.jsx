@@ -89,7 +89,7 @@ export default function VendorInventory() {
           placeholder="Buscar por SKU o producto…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 text-sm bg-white dark:bg-charcoal-900 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40"
+            className="flex-1 px-4 py-2 text-sm bg-white dark:bg-charcoal-900 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder:text-charcoal-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40"
         />
         <select
           value={statusFilter}
@@ -105,7 +105,7 @@ export default function VendorInventory() {
       {/* Variants table */}
       <div className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-12"><Spinner size="lg" className="text-gold" /></div>
+          <div className="flex justify-center py-12"><Spinner size="lg" className="text-gold dark:text-gold-light" /></div>
         ) : filtered.length === 0 ? (
           <p className="text-center py-12 text-sm text-charcoal-400 dark:text-zinc-500">Sin variantes encontradas</p>
         ) : (
@@ -135,7 +135,7 @@ export default function VendorInventory() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => openModal(v)}
-                          className="text-xs font-medium text-gold hover:text-gold-dark transition-colors"
+                          className="text-xs font-medium text-gold dark:text-gold-light hover:text-gold-dark dark:hover:text-gold-light transition-colors"
                         >
                           Ajustar
                         </button>
@@ -186,7 +186,7 @@ export default function VendorInventory() {
               </table>
             </div>
             <div className="px-5 py-3 border-t border-charcoal-100 dark:border-white/10">
-              <button onClick={loadMoreMovements} className="text-xs text-gold hover:text-gold-dark font-medium transition-colors">
+              <button onClick={loadMoreMovements} className="text-xs text-gold dark:text-gold-light hover:text-gold-dark dark:hover:text-gold-light font-medium transition-colors">
                 Cargar más →
               </button>
             </div>
@@ -241,14 +241,14 @@ export default function VendorInventory() {
                       placeholder="Ej: Reabastecimiento proveedor"
                       value={form.reason}
                       onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder-charcoal-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white placeholder:text-charcoal-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-gold/40"
                     />
                   </div>
                   <div className="flex gap-3 pt-1">
                     <button type="button" onClick={() => setModalOpen(false)} className="flex-1 py-2 text-sm font-medium bg-zinc-100 dark:bg-charcoal-800 text-charcoal-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-charcoal-700 transition-colors">
                       Cancelar
                     </button>
-                    <button type="submit" disabled={submitting} className="flex-1 py-2 text-sm font-semibold bg-gold hover:bg-gold-dark text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                    <button type="submit" disabled={submitting} className="flex-1 py-2 text-sm font-semibold bg-gold hover:bg-gold-dark text-white dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                       {submitting ? <Spinner size="sm" /> : null}
                       Confirmar
                     </button>

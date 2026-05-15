@@ -2,10 +2,11 @@ const asyncHandler = require('../utils/asyncHandler');
 const notificationService = require('../services/notificationService');
 
 const getMyNotifications = asyncHandler(async (req, res) => {
-  const { unreadOnly, page = 1, limit = 20 } = req.query;
+  const { unreadOnly, type, page = 1, limit = 20 } = req.query;
   const result = await notificationService.getUserNotifications({
     userId: req.user.id,
     unreadOnly: unreadOnly === 'true',
+    type,
     page: parseInt(page),
     limit: parseInt(limit),
   });

@@ -8,9 +8,12 @@ const {
   Order,
   OrderItem,
   Store,
+  User,
   InventoryMovement,
   PaymentTransaction,
 } = require('../models');
+const { platformCommissionRate } = require('../config/marketplace');
+const notificationService = require('./notificationService');
 const {
   NotFoundError,
   ForbiddenError,
@@ -20,6 +23,7 @@ const {
 const ORDER_INCLUDE = [
   { model: OrderItem, as: 'items' },
   { model: PaymentTransaction, as: 'payments' },
+  { model: User, as: 'customer', attributes: ['id', 'name', 'email'] },
 ];
 
 const VALID_TRANSITIONS = {
@@ -51,6 +55,34 @@ const fetchCartForCheckout = async (userId, storeId, transaction) => {
   return cart;
 };
 
+const fetchDirectItemsForCheckout = async (items, transaction) => {
+  const normalized = items.map((item) => ({
+    productVariantId: item.productVariantId ?? item.variantId,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+  }));
+  const variantIds = normalized.map((item) => item.productVariantId);
+  const variants = await ProductVariant.findAll({
+    where: { id: { [Op.in]: variantIds } },
+    include: [Product],
+    transaction,
+  });
+  const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
+
+  return normalized.map((item) => {
+    const variant = variantsById.get(item.productVariantId);
+    if (!variant) {
+      throw new NotFoundError('Variante de producto');
+    }
+    return {
+      productVariantId: item.productVariantId,
+      quantity: item.quantity,
+      unitPrice: Number(variant.price_override ?? variant.Product.base_price),
+      ProductVariant: variant,
+    };
+  });
+};
+
 const verifyStockOrThrow = (items) => {
   for (const item of items) {
     const stock = item.ProductVariant.stock;
@@ -63,13 +95,43 @@ const verifyStockOrThrow = (items) => {
   }
 };
 
+const resolveCheckoutItems = async ({ userId, storeId, items, transaction }) => {
+  if (items?.length > 0) {
+    const directItems = await fetchDirectItemsForCheckout(items, transaction);
+    const detectedStoreIds = new Set(directItems.map((item) => item.ProductVariant.store_id));
+    if (detectedStoreIds.size > 1) {
+      throw new BusinessError('Solo se puede crear una orden para una tienda a la vez', 'MULTI_STORE_ORDER');
+    }
+    const detectedStoreId = [...detectedStoreIds][0];
+    if (storeId && storeId !== detectedStoreId) {
+      throw new BusinessError('Los productos no pertenecen a la tienda indicada', 'STORE_MISMATCH');
+    }
+    return { checkoutItems: directItems, resolvedStoreId: detectedStoreId };
+  }
+
+  if (!storeId) {
+    throw new BusinessError('storeId es requerido cuando no se envian items', 'STORE_REQUIRED');
+  }
+  const cart = await fetchCartForCheckout(userId, storeId, transaction);
+  return { checkoutItems: cart.items, resolvedStoreId: storeId, cart };
+};
+
 const computeOrderTotals = (items, shippingAmount = 0) => {
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.unitPrice) * item.quantity,
     0
   );
   const total = Number((subtotal + Number(shippingAmount)).toFixed(2));
-  return { subtotal: Number(subtotal.toFixed(2)), total };
+  const normalizedSubtotal = Number(subtotal.toFixed(2));
+  const platformFeeAmount = Number((normalizedSubtotal * platformCommissionRate).toFixed(2));
+  const vendorPayoutAmount = Number((total - platformFeeAmount).toFixed(2));
+  return {
+    subtotal: normalizedSubtotal,
+    total,
+    platformFeeRate: platformCommissionRate,
+    platformFeeAmount,
+    vendorPayoutAmount,
+  };
 };
 
 const createOrderItems = async ({ orderId, cartItems, transaction }) =>
@@ -88,8 +150,8 @@ const createOrderItems = async ({ orderId, cartItems, transaction }) =>
     { transaction }
   );
 
-const decrementStockAndLog = async ({ cartItems, orderId, userId, storeId, transaction }) => {
-  for (const item of cartItems) {
+const reserveStockAndLog = async ({ checkoutItems, orderId, userId, storeId, transaction }) => {
+  for (const item of checkoutItems) {
     const variant = item.ProductVariant;
     const stockBefore = variant.stock;
     const stockAfter = stockBefore - item.quantity;
@@ -98,11 +160,11 @@ const decrementStockAndLog = async ({ cartItems, orderId, userId, storeId, trans
       {
         product_variant_id: variant.id,
         store_id: storeId,
-        type: 'out',
+        type: 'reserved',
         quantity: -item.quantity,
         stock_before: stockBefore,
         stock_after: stockAfter,
-        reason: 'sale',
+        reason: 'checkout_reservation',
         reference_id: orderId,
         created_by: userId,
       },
@@ -111,28 +173,63 @@ const decrementStockAndLog = async ({ cartItems, orderId, userId, storeId, trans
   }
 };
 
+const createOrderNotification = async (order) => {
+  try {
+    const store = await Store.findByPk(order.store_id);
+    if (!store) return;
+    const itemSummary = (order.items || [])
+      .map((item) => `${item.product_name} x${item.quantity}`)
+      .join(', ');
+    await notificationService.createNotification({
+      userId: store.vendor_id,
+      storeId: store.id,
+      type: 'new_order',
+      title: 'Nuevo pedido recibido',
+      message: `Pedido #${String(order.id).slice(0, 8).toUpperCase()}: ${itemSummary || 'productos por despachar'}.`,
+      metadata: { orderId: order.id, total: order.total, items: itemSummary },
+    });
+  } catch (_) {
+    // Notifications must not block checkout.
+  }
+};
+
 const create = async ({
   userId,
   storeId,
+  items,
   shippingAddress,
   paymentMethod,
   shippingMethod,
   shippingAmount = 0,
   customerNotes,
 }) => {
-  return sequelize.transaction(async (t) => {
-    const cart = await fetchCartForCheckout(userId, storeId, t);
-    verifyStockOrThrow(cart.items);
+  const order = await sequelize.transaction(async (t) => {
+    const { checkoutItems, resolvedStoreId, cart } = await resolveCheckoutItems({
+      userId,
+      storeId,
+      items,
+      transaction: t,
+    });
+    verifyStockOrThrow(checkoutItems);
 
-    const { subtotal, total } = computeOrderTotals(cart.items, shippingAmount);
+    const {
+      subtotal,
+      total,
+      platformFeeRate,
+      platformFeeAmount,
+      vendorPayoutAmount,
+    } = computeOrderTotals(checkoutItems, shippingAmount);
 
     const order = await Order.create(
       {
-        store_id: storeId,
+        store_id: resolvedStoreId,
         customer_id: userId,
         status: 'pending_payment',
         subtotal,
         shipping_amount: shippingAmount,
+        platform_fee_rate: platformFeeRate,
+        platform_fee_amount: platformFeeAmount,
+        vendor_payout_amount: vendorPayoutAmount,
         total,
         shipping_address: shippingAddress,
         shipping_method: shippingMethod,
@@ -142,30 +239,34 @@ const create = async ({
       { transaction: t }
     );
 
-    await createOrderItems({ orderId: order.id, cartItems: cart.items, transaction: t });
-    await decrementStockAndLog({
-      cartItems: cart.items,
+    await createOrderItems({ orderId: order.id, cartItems: checkoutItems, transaction: t });
+    await reserveStockAndLog({
+      checkoutItems,
       orderId: order.id,
       userId,
-      storeId,
+      storeId: resolvedStoreId,
       transaction: t,
     });
 
-    await CartItem.destroy({ where: { cartId: cart.id }, transaction: t });
+    if (cart) {
+      await CartItem.destroy({ where: { cartId: cart.id }, transaction: t });
+    }
 
     return Order.findByPk(order.id, { include: ORDER_INCLUDE, transaction: t });
   });
+  await createOrderNotification(order);
+  return order;
 };
 
-const buildListWhere = ({ user, filters }) => {
+const buildListWhere = ({ user, filters, vendorStoreId }) => {
   const where = {};
   if (user.role === 'customer') {
     where.customer_id = user.id;
   } else if (user.role === 'vendor' || user.role === 'staff') {
     if (filters.storeId) {
       where.store_id = filters.storeId;
-    } else if (user.storeId) {
-      where.store_id = user.storeId;
+    } else {
+      where.store_id = user.storeId || vendorStoreId;
     }
   }
   if (filters.status) {
@@ -187,9 +288,14 @@ const list = async ({ user, filters }) => {
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 10;
   const offset = (page - 1) * limit;
+  let vendorStoreId = null;
+  if ((user.role === 'vendor' || user.role === 'staff') && !user.storeId && !filters.storeId) {
+    const store = await Store.findOne({ where: { vendor_id: user.id } });
+    vendorStoreId = store?.id || null;
+  }
 
   const { rows, count } = await Order.findAndCountAll({
-    where: buildListWhere({ user, filters }),
+    where: buildListWhere({ user, filters, vendorStoreId }),
     include: ORDER_INCLUDE,
     limit,
     offset,
@@ -243,7 +349,9 @@ const updateStatus = async ({ id, user, status, vendorNotes }) => {
     );
   }
 
+  const oldStatus = order.status;
   await order.update({ status, vendor_notes: vendorNotes, ...transitionTimestamps(status) });
+  await notificationService.createOrderStatusNotification({ order, oldStatus, newStatus: status });
   return order;
 };
 
@@ -259,7 +367,7 @@ const setTracking = async ({ id, user, trackingNumber, trackingCompany }) => {
   return order;
 };
 
-const restoreStock = async ({ order, transaction }) => {
+const restoreStock = async ({ order, userId, transaction }) => {
   for (const item of order.items) {
     const variant = await ProductVariant.findByPk(item.product_variant_id, { transaction });
     if (!variant) continue;
@@ -270,12 +378,13 @@ const restoreStock = async ({ order, transaction }) => {
       {
         product_variant_id: variant.id,
         store_id: order.store_id,
-        type: 'in',
+        type: 'released',
         quantity: item.quantity,
         stock_before: stockBefore,
         stock_after: stockAfter,
-        reason: 'cancel',
+        reason: 'reservation_release',
         reference_id: order.id,
+        created_by: userId,
       },
       { transaction }
     );
@@ -295,7 +404,7 @@ const cancel = async ({ id, user }) => {
       throw new ForbiddenError();
     }
 
-    await restoreStock({ order, transaction: t });
+    await restoreStock({ order, userId: user.id, transaction: t });
     await order.update({ status: 'cancelled', cancelled_at: new Date() }, { transaction: t });
     return order;
   });

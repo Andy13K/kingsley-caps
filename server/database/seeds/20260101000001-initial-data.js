@@ -1,66 +1,198 @@
 'use strict';
 
 const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
 
-const STORE_ID = 'a0000000-0000-0000-0000-000000000001';
+const now = () => new Date();
+const asset = (name) => `/assets/kingsley/products/${name}`;
+
 const SUPERADMIN_ID = 'b0000000-0000-0000-0000-000000000001';
-const VENDOR_ID = 'b0000000-0000-0000-0000-000000000002';
-const CUSTOMER1_ID = 'b0000000-0000-0000-0000-000000000003';
-const CUSTOMER2_ID = 'b0000000-0000-0000-0000-000000000004';
+const CUSTOMER1_ID = 'b0000000-0000-0000-0000-000000000101';
+const CUSTOMER2_ID = 'b0000000-0000-0000-0000-000000000102';
 
-const CAP_CATEGORIES = ['Snapback', 'Trucker', 'Beanie', 'Fitted'];
-const CAP_COLORS = ['Negro', 'Blanco', 'Rojo', 'Azul', 'Verde'];
-const CAP_SIZES = ['S', 'M', 'L'];
+const VENDORS = [
+  {
+    id: 'b0000000-0000-0000-0000-000000000201',
+    storeId: 'a0000000-0000-0000-0000-000000000201',
+    email: 'vendedor.kingsley@kingsley.com',
+    name: 'Andrea Kingsley',
+    store: 'Kingsley Caps Oficial',
+    slug: 'kingsley-caps-oficial',
+    description: 'Coleccion oficial Kingsley Caps con gorras premium y boinas de la marca.',
+    wallet: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bd3E',
+    plan: 'enterprise',
+  },
+  {
+    id: 'b0000000-0000-0000-0000-000000000202',
+    storeId: 'a0000000-0000-0000-0000-000000000202',
+    email: 'vendedor.urban@kingsley.com',
+    name: 'Mario Urban',
+    store: 'Urban Star Caps',
+    slug: 'urban-star-caps',
+    description: 'Gorras urbanas para clientes con detalles de estrellas y acabados oscuros.',
+    wallet: '0x1111111111111111111111111111111111111111',
+    plan: 'pro',
+  },
+  {
+    id: 'b0000000-0000-0000-0000-000000000203',
+    storeId: 'a0000000-0000-0000-0000-000000000203',
+    email: 'vendedor.cross@kingsley.com',
+    name: 'Lucia Cross',
+    store: 'Cross Crown Studio',
+    slug: 'cross-crown-studio',
+    description: 'Gorras negras con bordados metalicos, cruces y piezas de coleccion.',
+    wallet: '0x2222222222222222222222222222222222222222',
+    plan: 'pro',
+  },
+  {
+    id: 'b0000000-0000-0000-0000-000000000204',
+    storeId: 'a0000000-0000-0000-0000-000000000204',
+    email: 'vendedor.sakura@kingsley.com',
+    name: 'Sofia Sakura',
+    store: 'Sakura Streetwear',
+    slug: 'sakura-streetwear',
+    description: 'Gorras de estilo streetwear con bordados rojos y detalles japoneses.',
+    wallet: '0x3333333333333333333333333333333333333333',
+    plan: 'basic',
+  },
+];
 
-const buildProducts = () => {
-  const products = [];
-  const variants = [];
+const PRODUCTS = [
+  {
+    id: 'c0000000-0000-0000-0000-000000000101',
+    storeIndex: 0,
+    name: 'Kingsley Verde Vintage',
+    description: 'Gorra verde lavada con emblema dorado Kingsley y acabado casual premium.',
+    category: 'Dad Hat',
+    price: '225.00',
+    featured: true,
+    images: ['gorraparaventa1-1.jpg', 'gorraparaventa1-2.jpg', 'gorraparaventa1-3.jpg'],
+    variants: [['Ajustable', 'Verde Oliva', 14], ['Ajustable', 'Verde Vintage', 8], ['Unica', 'Verde Claro', 6]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000102',
+    storeIndex: 0,
+    name: 'Kingsley Star Chain',
+    description: 'Gorra gris con estrellas bordadas y cadena lateral decorativa.',
+    category: 'Trucker',
+    price: '250.00',
+    featured: true,
+    images: ['gorraparaventa2-1.jpg', 'gorraparaventa2-2.jpg', 'gorraparaventa2-3.jpg'],
+    variants: [['M', 'Gris Estrella', 10], ['L', 'Gris Oscuro', 5], ['Ajustable', 'Negro/Gris', 7]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000103',
+    storeIndex: 0,
+    name: 'Kingsley Azul Cuadros',
+    description: 'Gorra azul con paneles a cuadros y bordado dorado frontal.',
+    category: 'Snapback',
+    price: '240.00',
+    featured: true,
+    images: ['gorraparaventa3-1.jpg', 'gorraparaventa3-2.jpg', 'gorraparaventa3-3.jpg'],
+    variants: [['M', 'Azul Cuadros', 11], ['L', 'Azul Marino', 9], ['Ajustable', 'Azul/Gris', 4]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000104',
+    storeIndex: 0,
+    name: 'Kingsley Tartan Signature',
+    description: 'Gorra tartan verde con logo Kingsley Caps bordado en dorado.',
+    category: 'Fitted',
+    price: '275.00',
+    featured: true,
+    images: ['gorraparaventa4-1.jpg', 'gorraparaventa4-2.jpg', 'gorraparaventa4-3.jpg'],
+    variants: [['M', 'Tartan Verde', 10], ['L', 'Tartan Oscuro', 6], ['XL', 'Tartan Azul', 5]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000105',
+    storeIndex: 0,
+    name: 'Boina Kingsley Heritage',
+    description: 'Boina premium tipo newsboy con patron tartan y detalles de cuero.',
+    category: 'Boina',
+    price: '295.00',
+    featured: true,
+    images: ['voinaparaventa1-1.jpg', 'voinaparaventa1-2.jpg', 'voinaparaventa1-3.jpg'],
+    variants: [['M', 'Tartan Verde', 8], ['L', 'Tartan Cafe', 6], ['XL', 'Tartan Azul', 3]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000201',
+    storeIndex: 1,
+    name: 'Star Runner Negra',
+    description: 'Gorra negra con estrella frontal y paneles laterales bordados.',
+    category: 'Streetwear',
+    price: '210.00',
+    featured: true,
+    images: ['gorracliente1-1.jpg', 'gorracliente1-2.jpg', 'gorracliente1-3.jpg', 'gorracliente1-4.jpg'],
+    variants: [['Ajustable', 'Negro/Blanco', 13], ['M', 'Negro', 6], ['L', 'Negro Estrella', 5]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000202',
+    storeIndex: 1,
+    name: 'Future Club Gris',
+    description: 'Gorra gris oscuro con relieve frontal y forro rojo interior.',
+    category: 'Urban',
+    price: '230.00',
+    featured: false,
+    images: ['gorracliente2-1.jpg', 'gorracliente2-2.jpg', 'gorracliente2-3.jpg', 'gorracliente2-4.jpg', 'gorracliente2-5.jpg'],
+    variants: [['Ajustable', 'Gris', 12], ['M', 'Gris/Rojo', 7], ['L', 'Gris Carbón', 4]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000301',
+    storeIndex: 2,
+    name: 'Cross Crown Negra',
+    description: 'Gorra negra con cruces bordadas y detalle gotico frontal.',
+    category: 'Streetwear',
+    price: '235.00',
+    featured: true,
+    images: ['gorracliente3-1.jpg', 'gorracliente3-2.jpg', 'gorracliente3-3.jpg', 'gorracliente3-4.jpg', 'gorracliente3-5.jpg'],
+    variants: [['Ajustable', 'Negro/Dorado', 10], ['M', 'Negro', 6], ['L', 'Negro Cruz', 4]],
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000401',
+    storeIndex: 3,
+    name: 'Sakura Kanji Negra',
+    description: 'Gorra negra con kanji rojo, flores bordadas y contraste interior rojo.',
+    category: 'Streetwear',
+    price: '245.00',
+    featured: true,
+    images: ['gorracliente4-1.jpg', 'gorracliente4-2.jpg', 'gorracliente4-3.jpg', 'gorracliente4-4.jpg', 'gorracliente4-5.jpg'],
+    variants: [['Ajustable', 'Negro/Rojo', 9], ['M', 'Negro Sakura', 6], ['L', 'Negro Kanji', 5]],
+  },
+];
 
-  for (let i = 1; i <= 10; i += 1) {
-    const productId = uuid();
-    const category = CAP_CATEGORIES[i % CAP_CATEGORIES.length];
-    products.push({
-      id: productId,
-      store_id: STORE_ID,
-      name: `Gorra ${category} Modelo ${i}`,
-      description: `Gorra premium estilo ${category} con materiales de alta calidad.`,
-      base_price: (200 + i * 25).toFixed(2),
-      category,
-      status: 'active',
-      featured: i <= 3,
-      images: JSON.stringify([`https://picsum.photos/seed/cap${i}/600/600`]),
-      tags: `{"${category.toLowerCase()}","gorra"}`,
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
+const buildProductRows = () => PRODUCTS.map((product) => ({
+  id: product.id,
+  store_id: VENDORS[product.storeIndex].storeId,
+  name: product.name,
+  description: product.description,
+  base_price: product.price,
+  category: product.category,
+  status: 'active',
+  featured: product.featured,
+  images: JSON.stringify(product.images.map(asset)),
+  tags: [product.category.toLowerCase(), 'gorra', VENDORS[product.storeIndex].slug],
+  created_at: now(),
+  updated_at: now(),
+}));
 
-    for (let j = 0; j < 3; j += 1) {
-      const size = CAP_SIZES[j];
-      const color = CAP_COLORS[j % CAP_COLORS.length];
-      variants.push({
-        id: uuid(),
-        product_id: productId,
-        store_id: STORE_ID,
-        size,
-        color,
-        sku: `KC-${category.slice(0, 3).toUpperCase()}-${i.toString().padStart(2, '0')}-${size}-${color.slice(0, 3).toUpperCase()}`,
-        stock: 10 + j * 5,
-        price_override: null,
-        low_stock_threshold: 3,
-        active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
-    }
-  }
-
-  return { products, variants };
-};
+const buildVariantRows = () => PRODUCTS.flatMap((product, productIndex) =>
+  product.variants.map(([size, color, stock], index) => ({
+    id: `d${String(productIndex + 1).padStart(7, '0')}-0000-0000-0000-${String(index + 1).padStart(12, '0')}`,
+    product_id: product.id,
+    store_id: VENDORS[product.storeIndex].storeId,
+    size,
+    color,
+    sku: `KC-${product.id.slice(-3)}-${index + 1}-${size}`.replace(/[^A-Z0-9-]/gi, '').toUpperCase(),
+    stock,
+    price_override: null,
+    low_stock_threshold: 3,
+    active: true,
+    created_at: now(),
+    updated_at: now(),
+  }))
+);
 
 module.exports = {
   async up(queryInterface) {
-    const passwordHash = await bcrypt.hash('Password@123', 10);
+    const passwordHash = await bcrypt.hash('Password@123', 12);
 
     await queryInterface.bulkInsert('user', [
       {
@@ -70,163 +202,82 @@ module.exports = {
         name: 'Super Administrador',
         role: 'superadmin',
         status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now(),
+        updated_at: now(),
       },
-      {
-        id: VENDOR_ID,
-        email: 'vendor@kingsley.com',
+      ...VENDORS.map((vendor) => ({
+        id: vendor.id,
+        email: vendor.email,
         password_hash: passwordHash,
-        name: 'Carlos Vendedor',
+        name: vendor.name,
         phone: '+502 5555 0001',
         address: 'Puerto Barrios, Izabal',
         role: 'vendor',
         status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
+        created_at: now(),
+        updated_at: now(),
+      })),
       {
         id: CUSTOMER1_ID,
         email: 'cliente1@kingsley.com',
         password_hash: passwordHash,
         name: 'Juan Garcia',
-        phone: '+502 5555 0002',
+        phone: '+502 5555 0101',
         address: 'Zona 1, Ciudad de Guatemala',
         role: 'customer',
         status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now(),
+        updated_at: now(),
       },
       {
         id: CUSTOMER2_ID,
         email: 'cliente2@kingsley.com',
         password_hash: passwordHash,
         name: 'Maria Lopez',
-        phone: '+502 5555 0003',
+        phone: '+502 5555 0102',
         address: 'Zona 10, Ciudad de Guatemala',
         role: 'customer',
         status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: now(),
+        updated_at: now(),
       },
     ]);
 
-    await queryInterface.bulkInsert('store', [
-      {
-        id: STORE_ID,
-        vendor_id: VENDOR_ID,
-        name: 'Kingsley Caps',
-        slug: 'kingsley-caps',
-        description: 'Tienda premium de gorras y accesorios.',
-        logo_url: 'https://picsum.photos/seed/kingsley/200/200',
-        status: 'active',
-        plan: 'pro',
-        crypto_enabled: true,
-        eth_wallet_address: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bd3E',
-        eth_confirmations_required: 3,
-        shipping_methods: JSON.stringify({
-          guatex: { name: 'Guatex', price: 35 },
-          cargo: { name: 'Cargo Expreso', price: 25 },
-        }),
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    ]);
+    await queryInterface.bulkInsert('store', VENDORS.map((vendor) => ({
+      id: vendor.storeId,
+      vendor_id: vendor.id,
+      name: vendor.store,
+      slug: vendor.slug,
+      description: vendor.description,
+      logo_url: '/assets/kingsley/brand/logo.jpg',
+      status: 'active',
+      plan: vendor.plan,
+      crypto_enabled: true,
+      eth_wallet_address: vendor.wallet,
+      eth_confirmations_required: 3,
+      shipping_methods: JSON.stringify([
+        { id: 'standard', name: 'Envio estandar', price: 35, estimated_days: '3-5 dias' },
+        { id: 'express', name: 'Envio express', price: 75, estimated_days: '1-2 dias' },
+      ]),
+      created_at: now(),
+      updated_at: now(),
+    })));
 
-    const { products, variants } = buildProducts();
+    const products = buildProductRows();
+    const variants = buildVariantRows();
+
     await queryInterface.bulkInsert('product', products);
     await queryInterface.bulkInsert('product_variant', variants);
-
-    const firstVariant = variants[0];
-    const orderId1 = uuid();
-    const orderId2 = uuid();
-    const orderId3 = uuid();
-
-    await queryInterface.bulkInsert('order', [
-      {
-        id: orderId1,
-        store_id: STORE_ID,
-        customer_id: CUSTOMER1_ID,
-        status: 'pending_payment',
-        subtotal: '450.00',
-        total: '485.00',
-        shipping_amount: '35.00',
-        currency: 'GTQ',
-        shipping_address: JSON.stringify({
-          name: 'Juan Garcia',
-          address: 'Zona 1, Calle Principal',
-          city: 'Guatemala',
-          phone: '+502 5555 0002',
-        }),
-        payment_method: 'crypto_eth',
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-      {
-        id: orderId2,
-        store_id: STORE_ID,
-        customer_id: CUSTOMER2_ID,
-        status: 'paid',
-        subtotal: '600.00',
-        total: '625.00',
-        shipping_amount: '25.00',
-        currency: 'GTQ',
-        shipping_address: JSON.stringify({
-          name: 'Maria Lopez',
-          address: 'Zona 10',
-          city: 'Guatemala',
-          phone: '+502 5555 0003',
-        }),
-        payment_method: 'card',
-        paid_at: new Date(),
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-      {
-        id: orderId3,
-        store_id: STORE_ID,
-        customer_id: CUSTOMER1_ID,
-        status: 'shipped',
-        subtotal: '750.00',
-        total: '785.00',
-        shipping_amount: '35.00',
-        currency: 'GTQ',
-        shipping_address: JSON.stringify({
-          name: 'Juan Garcia',
-          address: 'Zona 1',
-          city: 'Guatemala',
-          phone: '+502 5555 0002',
-        }),
-        payment_method: 'transfer',
-        tracking_number: 'GE123456789GT',
-        tracking_company: 'Guatex',
-        paid_at: new Date(Date.now() - 86400000),
-        shipped_at: new Date(),
-        created_at: new Date(Date.now() - 172800000),
-        updated_at: new Date(),
-      },
-    ]);
-
-    await queryInterface.bulkInsert('order_item', [
-      {
-        id: uuid(),
-        order_id: orderId1,
-        product_variant_id: firstVariant.id,
-        product_name: 'Gorra Snapback Modelo 1',
-        variant_size: firstVariant.size,
-        variant_color: firstVariant.color,
-        sku: firstVariant.sku,
-        quantity: 2,
-        unit_price: '225.00',
-        subtotal: '450.00',
-        created_at: new Date(),
-      },
-    ]);
   },
 
   async down(queryInterface) {
+    await queryInterface.bulkDelete('payment_transaction', null, {});
     await queryInterface.bulkDelete('order_item', null, {});
     await queryInterface.bulkDelete('order', null, {});
+    await queryInterface.bulkDelete('cart_item', null, {});
+    await queryInterface.bulkDelete('cart', null, {});
+    await queryInterface.bulkDelete('inventory_movement', null, {});
+    await queryInterface.bulkDelete('notification', null, {});
     await queryInterface.bulkDelete('product_variant', null, {});
     await queryInterface.bulkDelete('product', null, {});
     await queryInterface.bulkDelete('store', null, {});

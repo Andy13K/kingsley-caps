@@ -2,8 +2,13 @@ import ProductCard from './ProductCard';
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-charcoal-100 dark:border-white/15 bg-white dark:bg-charcoal-900">
-      <div className="h-72 animate-shimmer" />
+    <div className="rounded-xl overflow-hidden border border-charcoal-100 dark:border-white/15 bg-white dark:bg-charcoal-900">
+      <div className="aspect-[4/3] animate-shimmer" />
+      <div className="grid grid-cols-5 gap-1.5 px-3 pt-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="aspect-square rounded-md animate-shimmer" />
+        ))}
+      </div>
       <div className="p-4 space-y-2.5">
         <div className="h-3 w-1/4 animate-shimmer rounded-full" />
         <div className="h-4 w-3/4 animate-shimmer rounded-full" />
@@ -18,7 +23,7 @@ function SkeletonCard() {
 export default function ProductGrid({ products, loading, error }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
         {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
       </div>
     );
@@ -53,7 +58,7 @@ export default function ProductGrid({ products, loading, error }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
       {products.map((product, i) => (
         <div key={product.id} className="animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
           <ProductCard product={product} />

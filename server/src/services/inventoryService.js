@@ -1,9 +1,7 @@
 const { Op } = require('sequelize');
 const { sequelize, ProductVariant, Product, InventoryMovement, User } = require('../models');
 const AppError = require('../utils/AppError');
-
-// TODO: import notificationService when available
-// const notificationService = require('./notificationService');
+const notificationService = require('./notificationService');
 
 const getVariantStock = async ({ variantId, storeId }) => {
   const variant = await ProductVariant.findOne({
@@ -12,6 +10,14 @@ const getVariantStock = async ({ variantId, storeId }) => {
   });
   if (!variant) throw new AppError('Variante no encontrada', 404);
   return variant;
+};
+
+const listVariants = async ({ storeId }) => {
+  return ProductVariant.findAll({
+    where: { store_id: storeId },
+    include: [{ model: Product }],
+    order: [['sku', 'ASC']],
+  });
 };
 
 const adjustStock = async ({ productVariantId, quantity, type, reason, userId, storeId }) => {
@@ -42,7 +48,7 @@ const adjustStock = async ({ productVariantId, quantity, type, reason, userId, s
     }, { transaction: t });
 
     if (stockAfter <= variant.low_stock_threshold) {
-      // TODO: notificationService.createLowStockAlert({ variantId: productVariantId, storeId, stockAfter })
+      await notificationService.createLowStockAlert({ variant, stockAfter });
     }
 
     return { variant, movement };
@@ -117,4 +123,4 @@ const registerMovement = async ({
   });
 };
 
-module.exports = { getVariantStock, adjustStock, getAlerts, getMovements, registerMovement };
+module.exports = { listVariants, getVariantStock, adjustStock, getAlerts, getMovements, registerMovement };

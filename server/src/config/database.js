@@ -1,13 +1,13 @@
 const { Sequelize } = require('sequelize');
 const logger = require('../utils/logger');
 
-const sequelize = new Sequelize({
+const isRemoteHost = (host = '') =>
+  host.includes('supabase.co') || host.includes('amazonaws.com') || host.includes('pooler.supabase.com');
+
+const isRemoteUrl = (url = '') => url.includes('supabase.co') || url.includes('amazonaws.com');
+
+const commonOptions = {
   dialect: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'kingsley_caps_dev',
-  username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
   logging: (msg) => logger.debug(msg),
   pool: {
     max: 10,
@@ -21,7 +21,26 @@ const sequelize = new Sequelize({
     createdAt: 'created_at',
     updatedAt: 'updated_at',
   },
-});
+};
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+      ...commonOptions,
+      dialectOptions: isRemoteUrl(process.env.DATABASE_URL)
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : {},
+    })
+  : new Sequelize({
+      ...commonOptions,
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      database: process.env.DB_NAME || 'kingsley_caps_dev',
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      dialectOptions: isRemoteHost(process.env.DB_HOST)
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : {},
+    });
 
 const connectDatabase = async () => {
   await sequelize.authenticate();

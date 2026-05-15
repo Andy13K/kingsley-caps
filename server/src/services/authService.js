@@ -54,6 +54,7 @@ const sanitizeUser = (user) => ({
   name: user.name,
   email: user.email,
   phone: user.phone,
+  address: user.address,
   role: user.role,
   status: user.status,
   createdAt: user.created_at,

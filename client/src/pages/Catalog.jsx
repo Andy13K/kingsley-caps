@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import ProductGrid from '../components/products/ProductGrid';
 
-const CATEGORIES = ['Todas', 'Visera Plana', 'Camionera', 'Gorro', 'Cerrada', 'Cubeta'];
+const CATEGORIES = ['Todas', 'Dad Hat', 'Trucker', 'Snapback', 'Fitted', 'Boina', 'Streetwear', 'Urban'];
 
 export default function Catalog() {
   const [search, setSearch] = useState('');
@@ -20,7 +20,7 @@ export default function Catalog() {
       {/* Encabezado oscuro */}
       <div className="bg-white dark:bg-charcoal-950 border-b border-charcoal-100 dark:border-white/10 py-16 px-4">
         <div className="max-w-7xl mx-auto">
-          <span className="block text-gold text-sm font-bold uppercase tracking-widest mb-2">
+          <span className="block text-gold dark:text-gold-light text-sm font-bold uppercase tracking-widest mb-2">
             Colección completa
           </span>
           <h1 className="text-5xl font-black text-charcoal-950 dark:text-white tracking-tight mb-6">Catálogo</h1>

@@ -25,6 +25,16 @@ const computeTotals = (items) => {
 };
 
 const getCart = async ({ userId, storeId }) => {
+  if (!storeId) {
+    const carts = await Cart.findAll({
+      where: { userId },
+      include: [ITEM_INCLUDE],
+      order: [[{ model: CartItem, as: 'items' }, 'createdAt', 'ASC']],
+    });
+    const items = carts.flatMap((cart) => cart.items || []);
+    return { id: null, userId, storeId: null, items, ...computeTotals(items) };
+  }
+
   const cart = await Cart.findOne({
     where: { userId, storeId },
     include: [ITEM_INCLUDE],
@@ -132,6 +142,12 @@ const removeItem = async ({ itemId, userId }) => {
 
 const clearCart = async ({ userId, storeId }) => {
   return sequelize.transaction(async (t) => {
+    if (!storeId) {
+      const carts = await Cart.findAll({ where: { userId }, transaction: t });
+      await CartItem.destroy({ where: { cartId: carts.map((cart) => cart.id) }, transaction: t });
+      return { success: true };
+    }
+
     const cart = await Cart.findOne({ where: { userId, storeId }, transaction: t });
     if (!cart) {
       return { success: true };

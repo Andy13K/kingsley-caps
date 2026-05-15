@@ -8,13 +8,44 @@ import Input from '../components/ui/Input';
 
 const ROLES = [
   { value: 'customer', label: 'Cliente', desc: 'Quiero comprar gorras' },
-  { value: 'vendor',   label: 'Vendedor', desc: 'Quiero abrir mi tienda' },
+  { value: 'vendor', label: 'Vendedor', desc: 'Quiero abrir mi tienda' },
 ];
+
+const AUTH_BACKGROUNDS = ['gorra4.jpg', 'gorra1.jpg', 'gorra2.jpg'];
+
+function AuthBackdrop() {
+  return (
+    <div className="hidden lg:block relative bg-charcoal-950 overflow-hidden">
+      {AUTH_BACKGROUNDS.map((image) => (
+        <img
+          key={image}
+          src={`/assets/kingsley/hero/${image}`}
+          alt=""
+          className="auth-bg-slide absolute inset-0 w-full h-full object-cover blur-[2px] opacity-0"
+        />
+      ))}
+      <div className="absolute inset-0 bg-charcoal-950/58" />
+      <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-charcoal-950/55 to-charcoal-950/20" />
+      <div className="relative h-full flex flex-col justify-center p-12 -translate-y-8 auth-copy-lift">
+        <div className="flex items-center gap-2.5 mb-8">
+          <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-black text-white text-sm">KC</div>
+          <span className="font-bold text-white tracking-tight">Kingsley Caps</span>
+        </div>
+        <h2 className="text-4xl font-black text-white tracking-tight leading-tight mb-3">
+          Unete a la<br />comunidad.
+        </h2>
+        <p className="text-zinc-300 leading-relaxed max-w-sm">
+          Crea una cuenta para comprar, guardar tu direccion o abrir tu tienda como vendedor.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', phone: '', role: 'customer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', phone: '', address: '', role: 'customer' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -30,13 +61,20 @@ export default function Register() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setLoading(true);
     try {
-      await register({ name: form.name.trim(), email: form.email, password: form.password, phone: form.phone || undefined, role: form.role });
-      toast.success('¡Cuenta creada! Bienvenido a Kingsley Caps');
+      await register({
+        name: form.name.trim(),
+        email: form.email,
+        password: form.password,
+        phone: form.phone || undefined,
+        address: form.address || undefined,
+        role: form.role,
+      });
+      toast.success('Cuenta creada. Bienvenido a Kingsley Caps');
       navigate('/');
     } catch (err) {
       const status = err.response?.status;
       const msg = err.response?.data?.error?.message;
-      if (status === 409) setErrors({ email: 'Este email ya está registrado' });
+      if (status === 409) setErrors({ email: 'Este email ya esta registrado' });
       else setErrors({ general: msg || 'Error al crear la cuenta. Intenta de nuevo.' });
     } finally {
       setLoading(false);
@@ -45,56 +83,45 @@ export default function Register() {
 
   return (
     <div className="min-h-[100dvh] grid grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:block relative bg-charcoal-950">
-        <img src="https://picsum.photos/seed/kc-register-side/800/1200" alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
-        <div className="absolute inset-0 flex flex-col justify-end p-12">
-          <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-black text-white text-sm">KC</div>
-            <span className="font-bold text-white tracking-tight">Kingsley Caps</span>
-          </div>
-          <h2 className="text-4xl font-black text-white tracking-tight leading-tight mb-3">
-            Únete a la<br />comunidad.
-          </h2>
-          <p className="text-zinc-400 leading-relaxed max-w-sm">
-            Crea tu cuenta en segundos. Sin tarjeta requerida para registrarse.
-          </p>
-        </div>
-      </div>
+      <AuthBackdrop />
 
-      <div className="flex items-center justify-center px-6 py-14 bg-cream dark:bg-charcoal-950 overflow-y-auto">
-        <div className="w-full max-w-sm">
+      <div className="flex items-center justify-center px-6 py-12 bg-cream dark:bg-charcoal-950 overflow-y-auto">
+        <div className="w-full max-w-3xl">
           <div className="mb-8 animate-fade-up">
-            <p className="text-gold text-xs font-semibold uppercase tracking-widest mb-2">Nuevo aquí</p>
+            <p className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest mb-2">Nuevo aqui</p>
             <h1 className="text-3xl font-black text-charcoal-950 dark:text-zinc-50 tracking-tight">Crear cuenta</h1>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 animate-fade-up delay-100">
+          <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-up delay-100">
             {errors.general && (
-              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-400 font-medium" role="alert">
+              <div className="md:col-span-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-400 font-medium" role="alert">
                 {errors.general}
               </div>
             )}
 
-            <Input id="name" name="name" label="Nombre completo" placeholder="Ana López"
+            <Input id="name" name="name" label="Nombre completo" placeholder="Ana Lopez"
               value={form.name} onChange={handleChange} error={errors.name} autoComplete="name" disabled={loading} />
 
-            <Input id="email" name="email" type="email" label="Correo electrónico" placeholder="ana@email.com"
+            <Input id="email" name="email" type="email" label="Correo electronico" placeholder="ana@email.com"
               value={form.email} onChange={handleChange} error={errors.email} autoComplete="email" disabled={loading} />
 
-            <Input id="password" name="password" type="password" label="Contraseña"
-              placeholder="Mín. 8 caracteres, 1 mayúscula y 1 número"
+            <Input id="password" name="password" type="password" label="Contrasena"
+              placeholder="Min. 8 caracteres, 1 mayuscula y 1 numero"
               value={form.password} onChange={handleChange} error={errors.password} autoComplete="new-password" disabled={loading} />
 
-            <Input id="confirmPassword" name="confirmPassword" type="password" label="Confirmar contraseña"
-              placeholder="Repite tu contraseña"
+            <Input id="confirmPassword" name="confirmPassword" type="password" label="Confirmar contrasena"
+              placeholder="Repite tu contrasena"
               value={form.confirmPassword} onChange={handleChange} error={errors.confirmPassword} autoComplete="new-password" disabled={loading} />
 
-            <Input id="phone" name="phone" type="tel" label="Teléfono (opcional)" placeholder="+502 4521 8734"
+            <Input id="phone" name="phone" type="tel" label="Telefono (opcional)" placeholder="+502 4521 8734"
               value={form.phone} onChange={handleChange} error={errors.phone} autoComplete="tel" disabled={loading} />
 
-            <div className="flex flex-col gap-2">
+            <Input id="address" name="address" label="Direccion de envio (opcional)" placeholder="3ra Calle 5-23, Zona 1"
+              value={form.address} onChange={handleChange} error={errors.address} autoComplete="street-address" disabled={loading} />
+
+            <div className="md:col-span-2 flex flex-col gap-2">
               <p className="text-sm font-medium text-charcoal-900 dark:text-zinc-200">Tipo de cuenta</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {ROLES.map((r) => (
                   <label
                     key={r.value}
@@ -113,7 +140,7 @@ export default function Register() {
               </div>
             </div>
 
-            <Button type="submit" variant="blue" loading={loading} className="w-full mt-2" size="lg">
+            <Button type="submit" variant="blue" loading={loading} className="w-full mt-2 md:col-span-2" size="lg">
               Crear cuenta
             </Button>
           </form>
@@ -121,7 +148,7 @@ export default function Register() {
           <p className="text-center text-sm text-charcoal-800/75 dark:text-zinc-400 mt-6 animate-fade-up delay-200">
             Ya tienes cuenta?{' '}
             <Link to="/login" className="text-blue-dark dark:text-blue-light font-bold hover:underline transition-colors duration-200">
-              Inicia sesión
+              Inicia sesion
             </Link>
           </p>
         </div>

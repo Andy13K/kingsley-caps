@@ -8,21 +8,48 @@ const {
 
 const VARIANT_INCLUDE = { model: ProductVariant, as: 'variants' };
 
+const toProductPayload = (payload = {}) => ({
+  ...(payload.name !== undefined ? { name: payload.name } : {}),
+  ...(payload.description !== undefined ? { description: payload.description } : {}),
+  ...(payload.basePrice !== undefined ? { base_price: payload.basePrice } : {}),
+  ...(payload.base_price !== undefined ? { base_price: payload.base_price } : {}),
+  ...(payload.category !== undefined ? { category: payload.category } : {}),
+  ...(payload.images !== undefined ? { images: payload.images } : {}),
+  ...(payload.tags !== undefined ? { tags: payload.tags } : {}),
+  ...(payload.featured !== undefined ? { featured: payload.featured } : {}),
+  ...(payload.status !== undefined ? { status: payload.status } : {}),
+});
+
+const toVariantPayload = (variant, productId, storeId) => ({
+  product_id: productId,
+  store_id: storeId,
+  size: variant.size,
+  color: variant.color,
+  sku: variant.sku,
+  stock: variant.stock,
+  price_override: variant.priceOverride ?? variant.price_override ?? null,
+  low_stock_threshold: variant.lowStockThreshold ?? variant.low_stock_threshold ?? 3,
+  active: variant.active ?? true,
+});
+
 const buildListWhere = (filters) => {
   const where = { status: 'active' };
   if (filters.storeId) {
-    where.storeId = filters.storeId;
+    where.store_id = filters.storeId;
   }
   if (filters.category) {
     where.category = filters.category;
   }
+  if (filters.featured !== undefined) {
+    where.featured = filters.featured;
+  }
   if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-    where.basePrice = {};
+    where.base_price = {};
     if (filters.minPrice !== undefined) {
-      where.basePrice[Op.gte] = filters.minPrice;
+      where.base_price[Op.gte] = filters.minPrice;
     }
     if (filters.maxPrice !== undefined) {
-      where.basePrice[Op.lte] = filters.maxPrice;
+      where.base_price[Op.lte] = filters.maxPrice;
     }
   }
   if (filters.search) {
@@ -37,14 +64,14 @@ const list = async (filters) => {
   const offset = (page - 1) * limit;
 
   const where = buildListWhere(filters);
-  const include = [VARIANT_INCLUDE];
+  const include = [VARIANT_INCLUDE, { model: Store, where: { status: 'active' }, attributes: ['id', 'name', 'slug', 'status'] }];
 
   const { rows, count } = await Product.findAndCountAll({
     where,
     include,
     limit,
     offset,
-    order: [['createdAt', 'DESC']],
+    order: [['created_at', 'DESC']],
     distinct: true,
   });
 
@@ -61,8 +88,41 @@ const list = async (filters) => {
   };
 };
 
+const listForVendor = async ({ vendorId, filters = {} }) => {
+  const store = await Store.findOne({ where: { vendor_id: vendorId } });
+  if (!store) {
+    throw new NotFoundError('Tienda');
+  }
+
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 50;
+  const offset = (page - 1) * limit;
+  const where = { store_id: store.id };
+  if (filters.status) where.status = filters.status;
+
+  const { rows, count } = await Product.findAndCountAll({
+    where,
+    include: [VARIANT_INCLUDE],
+    limit,
+    offset,
+    order: [['created_at', 'DESC']],
+    distinct: true,
+  });
+
+  return {
+    products: rows,
+    meta: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
+  };
+};
+
 const findById = async (id) => {
-  const product = await Product.findByPk(id, { include: [VARIANT_INCLUDE] });
+  const product = await Product.findOne({
+    where: { id, status: 'active' },
+    include: [
+      VARIANT_INCLUDE,
+      { model: Store, where: { status: 'active' }, attributes: ['id', 'name', 'slug', 'status'] },
+    ],
+  });
   if (!product) {
     throw new NotFoundError('Producto');
   }
@@ -74,7 +134,7 @@ const assertStoreOwner = async (storeId, userId) => {
   if (!store) {
     throw new NotFoundError('Tienda');
   }
-  if (store.vendorId !== userId) {
+  if (store.vendor_id !== userId) {
     throw new ForbiddenError('No eres propietario de esta tienda');
   }
   return store;
@@ -83,7 +143,7 @@ const assertStoreOwner = async (storeId, userId) => {
 const checkSkuUnique = async (skus, transaction, excludeProductId = null) => {
   const where = { sku: { [Op.in]: skus } };
   if (excludeProductId) {
-    where.productId = { [Op.ne]: excludeProductId };
+    where.product_id = { [Op.ne]: excludeProductId };
   }
   const existing = await ProductVariant.findAll({ where, transaction });
   if (existing.length > 0) {
@@ -104,26 +164,12 @@ const create = async ({ storeId, vendorId, payload }) => {
     }
 
     const product = await Product.create(
-      {
-        storeId,
-        name: payload.name,
-        description: payload.description,
-        basePrice: payload.basePrice,
-        category: payload.category,
-        images: payload.images,
-        tags: payload.tags,
-        featured: payload.featured,
-        status: payload.status,
-      },
+      { store_id: storeId, ...toProductPayload(payload) },
       { transaction: t }
     );
 
     if (payload.variants?.length > 0) {
-      const variantData = payload.variants.map((v) => ({
-        ...v,
-        productId: product.id,
-        storeId,
-      }));
+      const variantData = payload.variants.map((v) => toVariantPayload(v, product.id, storeId));
       await ProductVariant.bulkCreate(variantData, { transaction: t });
     }
 
@@ -139,10 +185,36 @@ const update = async ({ id, vendorId, payload }) => {
   if (!product) {
     throw new NotFoundError('Producto');
   }
-  await assertStoreOwner(product.storeId, vendorId);
+  await assertStoreOwner(product.store_id, vendorId);
 
-  await product.update(payload);
-  return Product.findByPk(id, { include: [VARIANT_INCLUDE] });
+  return sequelize.transaction(async (t) => {
+    await product.update(toProductPayload(payload), { transaction: t });
+
+    if (payload.variants?.length > 0) {
+      const skus = payload.variants.map((v) => v.sku);
+      if (skus.length !== new Set(skus).size) {
+        throw new ConflictError('SKUs duplicados en la solicitud');
+      }
+      await checkSkuUnique(skus, t, id);
+
+      for (const variant of payload.variants) {
+        if (variant.id) {
+          const existing = await ProductVariant.findOne({
+            where: { id: variant.id, product_id: id, store_id: product.store_id },
+            transaction: t,
+          });
+          if (!existing) {
+            throw new NotFoundError('Variante');
+          }
+          await existing.update(toVariantPayload(variant, id, product.store_id), { transaction: t });
+        } else {
+          await ProductVariant.create(toVariantPayload(variant, id, product.store_id), { transaction: t });
+        }
+      }
+    }
+
+    return Product.findByPk(id, { include: [VARIANT_INCLUDE], transaction: t });
+  });
 };
 
 const archive = async ({ id, vendorId }) => {
@@ -150,10 +222,10 @@ const archive = async ({ id, vendorId }) => {
   if (!product) {
     throw new NotFoundError('Producto');
   }
-  await assertStoreOwner(product.storeId, vendorId);
+  await assertStoreOwner(product.store_id, vendorId);
 
   await product.update({ status: 'archived' });
   return product;
 };
 
-module.exports = { list, findById, create, update, archive };
+module.exports = { list, listForVendor, findById, create, update, archive };

@@ -28,7 +28,7 @@ export default function NotificationBell() {
 
   const fetchUnreadCount = async () => {
     try {
-      const { data } = await api.get('/api/notifications/unread-count');
+      const { data } = await api.get('/notifications/unread-count');
       setUnreadCount(data.data.count);
     } catch {
       // fail silently — show bell without badge
@@ -44,7 +44,7 @@ export default function NotificationBell() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/api/notifications?limit=10');
+      const { data } = await api.get('/notifications?limit=10');
       setNotifications(data.data.notifications || []);
     } catch {
       setNotifications([]);
@@ -61,7 +61,7 @@ export default function NotificationBell() {
 
   const markAsRead = async (id) => {
     try {
-      await api.put(`/api/notifications/${id}/read`);
+      await api.put(`/notifications/${id}/read`);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch {
@@ -71,7 +71,7 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/api/notifications/read-all');
+      await api.put('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch {
@@ -97,7 +97,7 @@ export default function NotificationBell() {
       >
         <BellIcon />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-gold text-white dark:bg-gold-light dark:text-charcoal-950 text-[10px] font-bold flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -110,7 +110,7 @@ export default function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs text-gold hover:text-gold-dark font-medium transition-colors"
+                className="text-xs text-gold dark:text-gold-light hover:text-gold-dark dark:hover:text-gold-light font-medium transition-colors"
               >
                 Marcar todas como leídas
               </button>

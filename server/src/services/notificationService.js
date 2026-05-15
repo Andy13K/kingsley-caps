@@ -99,9 +99,10 @@ const createDiscrepancyAlert = async ({ payment, order }) => {
   );
 };
 
-const getUserNotifications = async ({ userId, unreadOnly = false, page = 1, limit = 20 }) => {
+const getUserNotifications = async ({ userId, unreadOnly = false, type, page = 1, limit = 20 }) => {
   const where = { user_id: userId };
   if (unreadOnly) where.read = false;
+  if (type) where.type = type;
 
   const { count: total, rows: notifications } = await Notification.findAndCountAll({
     where,
