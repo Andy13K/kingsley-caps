@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const inventoryService = require('../services/inventoryService');
 const AppError = require('../utils/AppError');
+const aiService = require('../services/aiService');
 const { Store } = require('../models');
 
 const getStoreForVendor = async (userId) => {
@@ -64,4 +65,18 @@ const getMovements = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { listVariants, getVariantStock, adjustStock, getAlerts, getMovements };
+const getDemandPredictions = asyncHandler(async (req, res) => {
+  const store = await getStoreForVendor(req.user.id);
+  const productsData = await inventoryService.getDemandData(store.id);
+  const result = await aiService.predictDemand(store.id, productsData);
+  res.json({
+    success: true,
+    data: {
+      predictions: result.predictions,
+      forecastDays: result.forecastDays,
+      generatedAt: result.generatedAt,
+    },
+  });
+});
+
+module.exports = { listVariants, getVariantStock, adjustStock, getAlerts, getMovements, getDemandPredictions };
