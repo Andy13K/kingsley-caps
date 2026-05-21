@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import Spinner from '../../components/ui/Spinner';
+import useInventory from '../../hooks/useInventory';
 
 const STATUS_LABEL = {
   pending_payment: 'Pago pendiente',
@@ -51,6 +52,11 @@ export default function VendorDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { demandPredictions, isLoadingPredictions, predictionsError, fetchDemandPredictions } = useInventory();
+
+  useEffect(() => {
+    fetchDemandPredictions();
+  }, [fetchDemandPredictions]);
 
   useEffect(() => {
     const load = async () => {
@@ -220,6 +226,65 @@ export default function VendorDashboard() {
           ))}
         </Panel>
       </div>
+
+      <Panel
+        title="Prediccion de demanda — proximos 7 dias"
+        action={
+          <button
+            onClick={fetchDemandPredictions}
+            disabled={isLoadingPredictions}
+            className="text-xs text-gold dark:text-gold-light font-medium disabled:opacity-50"
+          >
+            Actualizar prediccion
+          </button>
+        }
+      >
+        {isLoadingPredictions && (
+          <div className="flex justify-center py-4">
+            <Spinner size="sm" className="text-gold dark:text-gold-light" />
+          </div>
+        )}
+        {!isLoadingPredictions && predictionsError && (
+          <EmptyText>No se pudieron cargar las predicciones.</EmptyText>
+        )}
+        {!isLoadingPredictions && !predictionsError && demandPredictions !== null && demandPredictions.predictions.length === 0 && (
+          <EmptyText>No hay productos activos para predecir.</EmptyText>
+        )}
+        {!isLoadingPredictions && demandPredictions !== null && demandPredictions.predictions.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-charcoal-500 dark:text-zinc-400 border-b border-charcoal-100 dark:border-white/10">
+                  <th className="pb-2 font-medium">Producto</th>
+                  <th className="pb-2 font-medium">Categoria</th>
+                  <th className="pb-2 font-medium text-right">Uds. predichas</th>
+                  <th className="pb-2 font-medium text-center">Tendencia</th>
+                  <th className="pb-2 font-medium text-center">Confianza</th>
+                </tr>
+              </thead>
+              <tbody>
+                {demandPredictions.predictions.map((p) => (
+                  <tr key={p.productId} className="border-b border-charcoal-50 dark:border-white/5 last:border-0">
+                    <td className="py-2 pr-3 text-charcoal-900 dark:text-white font-medium truncate max-w-[160px]">{p.productName}</td>
+                    <td className="py-2 pr-3 text-charcoal-500 dark:text-zinc-400">{p.category}</td>
+                    <td className="py-2 text-right font-semibold text-charcoal-900 dark:text-white">{p.predictedUnits}</td>
+                    <td className="py-2 text-center">
+                      {p.trend === 'up' && <span className="text-green-600 font-bold">↑</span>}
+                      {p.trend === 'flat' && <span className="text-gray-500 font-bold">→</span>}
+                      {p.trend === 'down' && <span className="text-red-600 font-bold">↓</span>}
+                    </td>
+                    <td className="py-2 text-center">
+                      {p.confidence === 'high' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">alta</span>}
+                      {p.confidence === 'medium' && <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">media</span>}
+                      {p.confidence === 'low' && <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">baja</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }
