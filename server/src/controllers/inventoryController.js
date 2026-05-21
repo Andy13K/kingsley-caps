@@ -79,4 +79,6 @@ const getDemandPredictions = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { listVariants, getVariantStock, adjustStock, getAlerts, getMovements, getDemandPredictions };
+module.exports = {
+  listVariants, getVariantStock, adjustStock, getAlerts, getMovements, getDemandPredictions,
+};
