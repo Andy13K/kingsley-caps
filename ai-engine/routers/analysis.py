@@ -4,9 +4,12 @@ from models.schemas import (
     TransactionResponse,
     InventoryAlertRequest,
     InventoryAlertResponse,
+    PriceSuggestionRequest,
+    PriceSuggestionResponse,
 )
 from analyzers.transaction_analyzer import analyze_transaction
 from analyzers.inventory_analyzer import analyze_inventory
+from analyzers.price_analyzer import suggest as suggest_price
 
 router = APIRouter(prefix="/api/ai", tags=["AI Analysis"])
 
@@ -25,5 +28,14 @@ async def inventory_alert_endpoint(request: InventoryAlertRequest):
     try:
         result = await analyze_inventory(request.model_dump())
         return InventoryAlertResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/suggest-price", response_model=PriceSuggestionResponse)
+async def suggest_price_endpoint(request: PriceSuggestionRequest):
+    try:
+        result = await suggest_price(request.model_dump())
+        return PriceSuggestionResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

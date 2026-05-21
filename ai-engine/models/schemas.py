@@ -36,3 +36,27 @@ class InventoryAlertResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     service: str
+
+
+class ProductDataForPricing(BaseModel):
+    name: str
+    category: str
+    tags: list[str] = []
+    featured: bool = False
+
+
+class ComparableProduct(BaseModel):
+    name: str
+    price: float
+
+
+class PriceSuggestionRequest(BaseModel):
+    product_data: ProductDataForPricing
+    comparable_products: list[ComparableProduct]
+
+
+class PriceSuggestionResponse(BaseModel):
+    suggested_price: float
+    confidence: int
+    reasoning: str
+    similar_products: list[ComparableProduct]
