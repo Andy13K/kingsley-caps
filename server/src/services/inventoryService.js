@@ -8,7 +8,7 @@ const getVariantStock = async ({ variantId, storeId }) => {
     where: { id: variantId, store_id: storeId },
     include: [{ model: Product }],
   });
-  if (!variant) throw new AppError('Variante no encontrada', 404);
+  if (!variant) {throw new AppError('Variante no encontrada', 404);}
   return variant;
 };
 
@@ -27,12 +27,12 @@ const adjustStock = async ({ productVariantId, quantity, type, reason, userId, s
       lock: t.LOCK.UPDATE,
       transaction: t,
     });
-    if (!variant) throw new AppError('Variante no encontrada', 404);
+    if (!variant) {throw new AppError('Variante no encontrada', 404);}
 
     const stockBefore = variant.stock;
     const stockAfter = type === 'in' ? stockBefore + quantity : stockBefore - quantity;
 
-    if (stockAfter < 0) throw new AppError('Stock insuficiente', 400);
+    if (stockAfter < 0) {throw new AppError('Stock insuficiente', 400);}
 
     await variant.update({ stock: stockAfter }, { transaction: t });
 
@@ -71,12 +71,12 @@ const getMovements = async ({ storeId, filters }) => {
   const offset = (page - 1) * limit;
 
   const where = { store_id: storeId };
-  if (variantId) where.product_variant_id = variantId;
-  if (type) where.type = type;
+  if (variantId) {where.product_variant_id = variantId;}
+  if (type) {where.type = type;}
   if (dateFrom || dateTo) {
     where.created_at = {};
-    if (dateFrom) where.created_at[Op.gte] = dateFrom;
-    if (dateTo) where.created_at[Op.lte] = dateTo;
+    if (dateFrom) {where.created_at[Op.gte] = dateFrom;}
+    if (dateTo) {where.created_at[Op.lte] = dateTo;}
   }
 
   const { count, rows } = await InventoryMovement.findAndCountAll({

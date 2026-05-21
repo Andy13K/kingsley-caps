@@ -9,7 +9,7 @@ class BlockchainService {
     this.confirmationsRequired = parseInt(process.env.ETH_CONFIRMATIONS_REQUIRED || '3');
   }
 
-  async verifyTransaction({ txHash, expectedTo, expectedAmountEth, network }) {
+  async verifyTransaction({ txHash, expectedTo, expectedAmountEth }) {
     try {
       const tx = await this.provider.getTransaction(txHash);
       if (!tx) {

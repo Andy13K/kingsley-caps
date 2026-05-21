@@ -21,9 +21,9 @@ const initiateCryptoPayment = async ({ orderId, userId }) => {
     include: [{ model: Store }],
   });
 
-  if (!order) throw new AppError('Orden no encontrada', 404);
-  if (order.customer_id !== userId) throw new AppError('No tienes acceso a esta orden', 403);
-  if (order.status !== 'pending_payment') throw new AppError('La orden no está pendiente de pago', 400);
+  if (!order) {throw new AppError('Orden no encontrada', 404);}
+  if (order.customer_id !== userId) {throw new AppError('No tienes acceso a esta orden', 403);}
+  if (order.status !== 'pending_payment') {throw new AppError('La orden no está pendiente de pago', 400);}
   if (!order.Store || !order.Store.crypto_enabled) {
     throw new AppError('Pagos crypto no habilitados en esta tienda', 400);
   }
@@ -80,7 +80,7 @@ const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
     ],
   });
 
-  if (!payment) throw new AppError('Pago no encontrado', 404);
+  if (!payment) {throw new AppError('Pago no encontrado', 404);}
 
   if (new Date() > new Date(payment.expires_at)) {
     await payment.update({ status: 'failed' });
@@ -188,8 +188,8 @@ const getPaymentByOrderId = async ({ orderId, userId }) => {
     order: [['created_at', 'DESC']],
   });
 
-  if (!payment) throw new AppError('Pago no encontrado', 404);
-  if (payment.Order.customer_id !== userId) throw new AppError('No tienes acceso a este pago', 403);
+  if (!payment) {throw new AppError('Pago no encontrado', 404);}
+  if (payment.Order.customer_id !== userId) {throw new AppError('No tienes acceso a este pago', 403);}
 
   return payment;
 };

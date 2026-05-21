@@ -98,7 +98,7 @@ const listForVendor = async ({ vendorId, filters = {} }) => {
   const limit = filters.limit ?? 50;
   const offset = (page - 1) * limit;
   const where = { store_id: store.id };
-  if (filters.status) where.status = filters.status;
+  if (filters.status) {where.status = filters.status;}
 
   const { rows, count } = await Product.findAndCountAll({
     where,

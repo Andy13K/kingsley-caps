@@ -178,7 +178,7 @@ const refresh = async (rawRefreshToken) => {
 };
 
 const logout = async (rawRefreshToken) => {
-  if (!rawRefreshToken) return;
+  if (!rawRefreshToken) {return;}
 
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
   await RefreshToken.update(

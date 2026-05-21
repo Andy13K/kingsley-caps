@@ -5,7 +5,7 @@ const { Store } = require('../models');
 
 const getStoreForVendor = async (userId) => {
   const store = await Store.findOne({ where: { vendor_id: userId } });
-  if (!store) throw new AppError('No tienes una tienda asociada', 403);
+  if (!store) {throw new AppError('No tienes una tienda asociada', 403);}
   return store;
 };
 
