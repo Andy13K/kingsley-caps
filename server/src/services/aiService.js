@@ -55,4 +55,36 @@ const analyzeInventory = async ({ storeId, variantId, currentStock, lowStockThre
   }
 };
 
-module.exports = { analyzeTransaction, analyzeInventory };
+const suggestPrice = async (productData, comparableProducts) => {
+  try {
+    const { data } = await axios.post(
+      `${AI_ENGINE_URL}/api/ai/suggest-price`,
+      {
+        product_data: {
+          name: productData.name || '',
+          category: productData.category,
+          tags: productData.tags || [],
+          featured: productData.featured || false,
+        },
+        comparable_products: comparableProducts,
+      },
+      { timeout: 5000 }
+    );
+    return {
+      suggestedPrice: data.suggested_price,
+      confidence: data.confidence,
+      reasoning: data.reasoning,
+      similarProducts: data.similar_products,
+    };
+  } catch (err) {
+    logger.error('AI service unavailable for price suggestion', { message: err.message });
+    return {
+      suggestedPrice: 0,
+      confidence: 0,
+      reasoning: 'Error al consultar la IA.',
+      similarProducts: [],
+    };
+  }
+};
+
+module.exports = { analyzeTransaction, analyzeInventory, suggestPrice };
