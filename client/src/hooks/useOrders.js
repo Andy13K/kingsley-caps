@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const normalizeOrder = (order) => ({
   ...order,
@@ -26,12 +27,14 @@ export const useOrders = (page = 1, limit = 10) => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get('/orders', { params: { page, limit } });
+      const endpoint = user?.role === 'customer' ? '/orders/my' : '/orders';
+      const { data } = await api.get(endpoint, { params: { page, limit } });
       const rows = Array.isArray(data.data) ? data.data : data.data.orders ?? [];
       setOrders(rows.map(normalizeOrder));
       setTotal(data.meta?.total ?? rows.length);
@@ -42,7 +45,7 @@ export const useOrders = (page = 1, limit = 10) => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, user?.role]);
 
   useEffect(() => {
     fetchOrders();

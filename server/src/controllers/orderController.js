@@ -17,6 +17,14 @@ const list = asyncHandler(async (req, res) => {
   res.json({ success: true, data: orders, meta });
 });
 
+const listMy = asyncHandler(async (req, res) => {
+  const { orders, meta } = await orderService.list({
+    user: req.user,
+    filters: req.query,
+  });
+  res.json({ success: true, data: orders, meta });
+});
+
 const getById = asyncHandler(async (req, res) => {
   const order = await orderService.findById({ id: req.params.id, user: req.user });
   res.json({ success: true, data: order });
@@ -47,4 +55,4 @@ const cancel = asyncHandler(async (req, res) => {
   res.json({ success: true, data: order });
 });
 
-module.exports = { create, list, getById, updateStatus, setTracking, cancel };
+module.exports = { create, list, listMy, getById, updateStatus, setTracking, cancel };
