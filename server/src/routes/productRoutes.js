@@ -24,6 +24,16 @@ router.post(
 );
 
 router.post(
+  '/:productId/try-on',
+  authenticate,
+  uploadProductImages.fields([
+    { name: 'userPhoto', maxCount: 1 },
+    { name: 'capImage', maxCount: 1 },
+  ]),
+  productController.tryOn
+);
+
+router.post(
   '/',
   authenticate,
   authorize('vendor'),

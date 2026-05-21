@@ -66,4 +66,34 @@ const uploadImages = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: { images: urls } });
 });
 
-module.exports = { list, listMine, getById, create, update, archive, uploadImages };
+const tryOn = asyncHandler(async (req, res) => {
+  const aiService = require('../services/aiService');
+  const { productId } = req.params;
+
+  const product = await productService.findById(productId);
+  if (!product) {
+    return res.status(404).json({ success: false, error: { message: 'Producto no encontrado' } });
+  }
+
+  const files = req.files || {};
+  if (!files.userPhoto || !files.userPhoto[0] || !files.capImage || !files.capImage[0]) {
+    return res.status(400).json({
+      success: false,
+      error: { message: 'Se requieren ambas imágenes: foto del usuario y gorra' },
+    });
+  }
+
+  const userPhotoPath = files.userPhoto[0].path;
+  const capImagePath = files.capImage[0].path;
+
+  const result = await aiService.analyzeVirtualTryOn({
+    userPhotoPath,
+    capImagePath,
+    capName: product.name,
+    capDescription: product.description || '',
+  });
+
+  res.json({ success: true, data: result });
+});
+
+module.exports = { list, listMine, getById, create, update, archive, uploadImages, tryOn };

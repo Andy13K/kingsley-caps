@@ -6,6 +6,7 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { formatCurrency } from '../utils/formatters';
 import VariantSelector from '../components/products/VariantSelector';
+import VirtualTryOn from '../components/products/VirtualTryOn';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
 
@@ -193,6 +194,10 @@ function ProductDetailContent() {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mt-16 py-12 border-t border-charcoal-100 dark:border-white/10">
+          <VirtualTryOn productId={product.id} productName={product.name} />
         </div>
       </div>
     </div>
