@@ -55,6 +55,38 @@ const analyzeInventory = async ({ storeId, variantId, currentStock, lowStockThre
   }
 };
 
+const suggestPrice = async (productData, comparableProducts) => {
+  try {
+    const { data } = await axios.post(
+      `${AI_ENGINE_URL}/api/ai/suggest-price`,
+      {
+        product_data: {
+          name: productData.name || '',
+          category: productData.category,
+          tags: productData.tags || [],
+          featured: productData.featured || false,
+        },
+        comparable_products: comparableProducts,
+      },
+      { timeout: 5000 }
+    );
+    return {
+      suggestedPrice: data.suggested_price,
+      confidence: data.confidence,
+      reasoning: data.reasoning,
+      similarProducts: data.similar_products,
+    };
+  } catch (err) {
+    logger.error('AI service unavailable for price suggestion', { message: err.message });
+    return {
+      suggestedPrice: 0,
+      confidence: 0,
+      reasoning: 'Error al consultar la IA.',
+      similarProducts: [],
+    };
+  }
+};
+
 const predictDemand = async (storeId, productsData) => {
   try {
     const { data } = await axios.post(
@@ -70,7 +102,7 @@ const predictDemand = async (storeId, productsData) => {
       storeId: data.store_id,
       forecastDays: data.forecast_days,
       generatedAt: data.generated_at,
-      predictions: data.predictions.map(p => ({
+      predictions: data.predictions.map((p) => ({
         productId: p.product_id,
         productName: p.product_name,
         category: p.category,
@@ -86,4 +118,4 @@ const predictDemand = async (storeId, productsData) => {
   }
 };
 
-module.exports = { analyzeTransaction, analyzeInventory, predictDemand };
+module.exports = { analyzeTransaction, analyzeInventory, suggestPrice, predictDemand };

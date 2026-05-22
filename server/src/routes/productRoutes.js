@@ -5,6 +5,7 @@ const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 const uploadProductImages = require('../middleware/uploadProductImages');
 const productController = require('../controllers/productController');
+const { suggestProductPrice } = require('../controllers/pricingController');
 const {
   createProductSchema,
   updateProductSchema,
@@ -13,6 +14,13 @@ const {
 
 router.get('/', validate(listProductsSchema, 'query'), productController.list);
 router.get('/vendor/mine', authenticate, authorize('vendor'), productController.listMine);
+router.post(
+  '/suggest-price',
+  authenticate,
+  authorize(['vendor', 'superadmin']),
+  suggestProductPrice
+);
+
 router.get('/:id', productController.getById);
 
 router.post(
