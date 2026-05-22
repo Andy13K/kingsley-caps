@@ -60,3 +60,33 @@ class PriceSuggestionResponse(BaseModel):
     confidence: int
     reasoning: str
     similar_products: list[ComparableProduct]
+
+
+class ProductSalesData(BaseModel):
+    product_id: str
+    product_name: str
+    category: str
+    daily_sales: list[int]  # 30 integers, index 0 = 30 days ago, index 29 = yesterday
+
+
+class DemandPredictionRequest(BaseModel):
+    store_id: str
+    products: list[ProductSalesData]
+    forecast_days: int = 7
+
+
+class ProductDemandForecast(BaseModel):
+    product_id: str
+    product_name: str
+    category: str
+    predicted_units: int
+    trend: str            # "up" | "flat" | "down"
+    confidence: str       # "high" | "medium" | "low"
+    avg_daily_sales: float
+
+
+class DemandPredictionResponse(BaseModel):
+    store_id: str
+    forecast_days: int
+    predictions: list[ProductDemandForecast]
+    generated_at: str     # ISO 8601 timestamp

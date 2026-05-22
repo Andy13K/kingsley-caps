@@ -87,4 +87,35 @@ const suggestPrice = async (productData, comparableProducts) => {
   }
 };
 
-module.exports = { analyzeTransaction, analyzeInventory, suggestPrice };
+const predictDemand = async (storeId, productsData) => {
+  try {
+    const { data } = await axios.post(
+      `${AI_ENGINE_URL}/api/ai/predict-demand`,
+      {
+        store_id: storeId,
+        products: productsData,
+        forecast_days: 7,
+      },
+      { timeout: 8000 }
+    );
+    return {
+      storeId: data.store_id,
+      forecastDays: data.forecast_days,
+      generatedAt: data.generated_at,
+      predictions: data.predictions.map((p) => ({
+        productId: p.product_id,
+        productName: p.product_name,
+        category: p.category,
+        predictedUnits: p.predicted_units,
+        trend: p.trend,
+        confidence: p.confidence,
+        avgDailySales: p.avg_daily_sales,
+      })),
+    };
+  } catch (err) {
+    logger.error('AI service unavailable for demand prediction', { message: err.message });
+    return { storeId, forecastDays: 7, predictions: [], generatedAt: new Date().toISOString() };
+  }
+};
+
+module.exports = { analyzeTransaction, analyzeInventory, suggestPrice, predictDemand };

@@ -85,7 +85,7 @@ const inventory = asyncHandler(async (req, res) => {
 
 const approveStore = asyncHandler(async (req, res) => {
   const store = await Store.findByPk(req.params.id);
-  if (!store) throw new NotFoundError('Tienda');
+  if (!store) {throw new NotFoundError('Tienda');}
 
   await store.update({ status: 'active' });
   await User.update({ status: 'active' }, { where: { id: store.vendor_id } });
@@ -95,7 +95,7 @@ const approveStore = asyncHandler(async (req, res) => {
 
 const suspendStore = asyncHandler(async (req, res) => {
   const store = await Store.findByPk(req.params.id);
-  if (!store) throw new NotFoundError('Tienda');
+  if (!store) {throw new NotFoundError('Tienda');}
 
   await store.update({ status: 'suspended' });
   await User.update({ status: 'suspended' }, { where: { id: store.vendor_id } });
@@ -105,7 +105,7 @@ const suspendStore = asyncHandler(async (req, res) => {
 
 const reactivateStore = asyncHandler(async (req, res) => {
   const store = await Store.findByPk(req.params.id);
-  if (!store) throw new NotFoundError('Tienda');
+  if (!store) {throw new NotFoundError('Tienda');}
 
   await store.update({ status: 'active' });
   await User.update({ status: 'active' }, { where: { id: store.vendor_id } });
