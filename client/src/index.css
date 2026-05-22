@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Outfit', system-ui, sans-serif;
+    background-color: #f8fafc;
+    color: #0f141a;
+  }
+
+  .dark body {
+    background-color: #0f141a;
+    color: #f8f8f8;
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease both;
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, #e7eaee 25%, #ffffff 50%, #e7eaee 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+  }
+  .dark .animate-shimmer {
+    background: linear-gradient(90deg, #171d24 25%, #222a33 50%, #171d24 75%);
+    background-size: 200% 100%;
+  }
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  .auth-bg-slide {
+    animation: authBgFade 18s ease-in-out infinite;
+  }
+  .auth-bg-slide:nth-child(2) { animation-delay: 6s; }
+  .auth-bg-slide:nth-child(3) { animation-delay: 12s; }
+  .auth-copy-lift {
+    animation: authCopyLift 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes authBgFade {
+  0%, 28% {
+    opacity: 1;
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  36%, 92% {
+    opacity: 0;
+    transform: scale(1.13) translate3d(-1.5%, -1%, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes authCopyLift {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
