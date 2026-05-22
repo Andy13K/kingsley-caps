@@ -176,7 +176,7 @@ const reserveStockAndLog = async ({ checkoutItems, orderId, userId, storeId, tra
 const createOrderNotification = async (order) => {
   try {
     const store = await Store.findByPk(order.store_id);
-    if (!store) return;
+    if (!store) {return;}
     const itemSummary = (order.items || [])
       .map((item) => `${item.product_name} x${item.quantity}`)
       .join(', ');
@@ -331,10 +331,10 @@ const findById = async ({ id, user }) => assertCanAccessOrder(id, user);
 
 const transitionTimestamps = (status) => {
   const now = new Date();
-  if (status === 'paid') return { paid_at: now };
-  if (status === 'shipped') return { shipped_at: now };
-  if (status === 'delivered') return { delivered_at: now };
-  if (status === 'cancelled') return { cancelled_at: now };
+  if (status === 'paid') {return { paid_at: now };}
+  if (status === 'shipped') {return { shipped_at: now };}
+  if (status === 'delivered') {return { delivered_at: now };}
+  if (status === 'cancelled') {return { cancelled_at: now };}
   return {};
 };
 
@@ -370,7 +370,7 @@ const setTracking = async ({ id, user, trackingNumber, trackingCompany }) => {
 const restoreStock = async ({ order, userId, transaction }) => {
   for (const item of order.items) {
     const variant = await ProductVariant.findByPk(item.product_variant_id, { transaction });
-    if (!variant) continue;
+    if (!variant) {continue;}
     const stockBefore = variant.stock;
     const stockAfter = stockBefore + item.quantity;
     await variant.update({ stock: stockAfter }, { transaction });

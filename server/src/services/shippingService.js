@@ -9,11 +9,11 @@ const addTracking = async ({ orderId, trackingNumber, trackingCompany, userId })
     include: [{ model: Store }],
   });
 
-  if (!order) throw new AppError('Orden no encontrada', 404);
-  if (order.Store.vendor_id !== userId) throw new AppError('No tienes acceso a esta orden', 403);
+  if (!order) {throw new AppError('Orden no encontrada', 404);}
+  if (order.Store.vendor_id !== userId) {throw new AppError('No tienes acceso a esta orden', 403);}
 
   const updateData = { tracking_number: trackingNumber, tracking_company: trackingCompany, shipped_at: new Date() };
-  if (['preparing', 'packed'].includes(order.status)) updateData.status = 'shipped';
+  if (['preparing', 'packed'].includes(order.status)) {updateData.status = 'shipped';}
 
   await order.update(updateData);
 
@@ -40,7 +40,7 @@ const getTrackingInfo = async ({ orderId, userId }) => {
     include: [{ model: Store, attributes: ['id', 'vendor_id'] }],
   });
 
-  if (!order) throw new AppError('Orden no encontrada', 404);
+  if (!order) {throw new AppError('Orden no encontrada', 404);}
   if (order.customer_id !== userId && order.Store.vendor_id !== userId) {
     throw new AppError('No tienes acceso a esta orden', 403);
   }

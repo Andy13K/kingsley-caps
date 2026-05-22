@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import Spinner from '../../components/ui/Spinner.jsx';
 import api from '../../services/api.js';
 import { formatCurrency } from '../../utils/formatters.js';
 
@@ -19,6 +20,13 @@ const EMPTY_FORM = {
   variants: [DEFAULT_VARIANT],
 };
 
+const CONFIDENCE_CLASSES = {
+  80: 'w-4/5 bg-green-500',
+  60: 'w-3/5 bg-green-500',
+  30: 'w-[30%] bg-yellow-500',
+  0: 'w-0 bg-red-400',
+};
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [store, setStore] = useState(null);
@@ -28,6 +36,9 @@ const Products = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [priceSuggestion, setPriceSuggestion] = useState(null);
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [suggestionError, setSuggestionError] = useState(null);
 
   const buildSku = (productIndex, variantIndex) =>
     `KC-${String(productIndex + 1).padStart(4, '0')}-${String(variantIndex + 1).padStart(2, '0')}`;
@@ -47,6 +58,8 @@ const Products = () => {
     setForm(formWithSkus(EMPTY_FORM));
     setImageFiles([]);
     setImagePreviews([]);
+    setPriceSuggestion(null);
+    setSuggestionError(null);
   };
 
   const loadData = async () => {
@@ -138,6 +151,25 @@ const Products = () => {
       variants[index] = { ...variants[index], [field]: value };
       return { ...prev, variants };
     });
+  };
+
+  const handleSuggestPrice = async () => {
+    setIsLoadingSuggestion(true);
+    setSuggestionError(null);
+    setPriceSuggestion(null);
+    try {
+      const res = await api.post('/products/suggest-price', {
+        category: form.category,
+        tags: [],
+        featured: false,
+        exclude_product_id: editingProduct?.id || null,
+      });
+      setPriceSuggestion(res.data.data);
+    } catch (err) {
+      setSuggestionError(err.message);
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
   };
 
   const handleImagesChange = (event) => {
@@ -272,10 +304,33 @@ const Products = () => {
                 <option>Urban</option>
               </select>
             </label>
-            <label className="block text-sm">
+            <div className="block text-sm">
               <span className="text-charcoal-700 dark:text-zinc-300">Precio base (GTQ)</span>
-              <input required type="number" step="0.01" min="0" className="mt-1 w-full border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-charcoal-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/40" value={form.basePrice} onChange={(e) => setForm({ ...form, basePrice: e.target.value })} />
-            </label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="flex-1 border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-charcoal-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/40"
+                  value={form.basePrice}
+                  onChange={(e) => setForm({ ...form, basePrice: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={handleSuggestPrice}
+                  disabled={!form.category || isLoadingSuggestion}
+                  className="flex items-center gap-1.5 px-3 rounded-lg text-sm font-semibold bg-gold/10 text-gold dark:bg-gold/20 dark:text-gold-light hover:bg-gold/20 dark:hover:bg-gold/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  {isLoadingSuggestion
+                    ? <Spinner size="sm" className="text-gold dark:text-gold-light" />
+                    : 'Sugerir precio IA'}
+                </button>
+              </div>
+              {suggestionError && (
+                <p className="mt-1 text-xs text-red-500">{suggestionError}</p>
+              )}
+            </div>
             <label className="block text-sm">
               <span className="text-charcoal-700 dark:text-zinc-300">
                 {editingProduct ? 'Reemplazar imagenes (3 a 5 archivos)' : 'Imagenes de la gorra (3 a 5 archivos)'}
@@ -284,6 +339,60 @@ const Products = () => {
               <span className="mt-1 block text-xs text-charcoal-500 dark:text-zinc-400">Formatos permitidos: PNG, JPG, JPEG, WEBP y GIF.</span>
             </label>
           </div>
+
+          {priceSuggestion && (
+            <div className="rounded-xl border border-charcoal-100 dark:border-white/10 bg-charcoal-50 dark:bg-charcoal-800/50 p-4 space-y-3">
+              {priceSuggestion.confidence === 0 ? (
+                <p className="text-sm text-charcoal-500 dark:text-zinc-400">
+                  Sin datos suficientes en esta categoria.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-charcoal-500 dark:text-zinc-400">
+                        Precio sugerido
+                      </p>
+                      <p className="text-2xl font-bold text-charcoal-900 dark:text-white">
+                        Q{priceSuggestion.suggestedPrice?.toFixed(2)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, basePrice: priceSuggestion.suggestedPrice }))}
+                      className="px-3 py-2 rounded-lg text-sm font-semibold bg-gold text-white hover:bg-gold-dark dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold transition-colors whitespace-nowrap"
+                    >
+                      Usar este precio
+                    </button>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs text-charcoal-500 dark:text-zinc-400">
+                      Confianza: {priceSuggestion.confidence}%
+                    </p>
+                    <div className="h-2 w-full rounded-full bg-charcoal-200 dark:bg-charcoal-700">
+                      <div className={`h-2 rounded-full transition-all ${CONFIDENCE_CLASSES[priceSuggestion.confidence] || 'w-0 bg-red-400'}`} />
+                    </div>
+                  </div>
+                  <p className="text-sm text-charcoal-600 dark:text-zinc-300">{priceSuggestion.reasoning}</p>
+                  {priceSuggestion.similarProducts?.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-charcoal-500 dark:text-zinc-400">
+                        Productos similares
+                      </p>
+                      <ul className="space-y-1">
+                        {priceSuggestion.similarProducts.map((p, i) => (
+                          <li key={i} className="flex justify-between text-sm text-charcoal-700 dark:text-zinc-300">
+                            <span>{p.name}</span>
+                            <span className="font-medium">Q{p.price?.toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {imagePreviews.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">

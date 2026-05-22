@@ -152,4 +152,67 @@ Responde en JSON con la estructura: {
   }
 };
 
-module.exports = { analyzeTransaction, analyzeInventory, analyzeVirtualTryOn };
+const suggestPrice = async (productData, comparableProducts) => {
+  try {
+    const { data } = await axios.post(
+      `${AI_ENGINE_URL}/api/ai/suggest-price`,
+      {
+        product_data: {
+          name: productData.name || '',
+          category: productData.category,
+          tags: productData.tags || [],
+          featured: productData.featured || false,
+        },
+        comparable_products: comparableProducts,
+      },
+      { timeout: 5000 }
+    );
+    return {
+      suggestedPrice: data.suggested_price,
+      confidence: data.confidence,
+      reasoning: data.reasoning,
+      similarProducts: data.similar_products,
+    };
+  } catch (err) {
+    logger.error('AI service unavailable for price suggestion', { message: err.message });
+    return {
+      suggestedPrice: 0,
+      confidence: 0,
+      reasoning: 'Error al consultar la IA.',
+      similarProducts: [],
+    };
+  }
+};
+
+const predictDemand = async (storeId, productsData) => {
+  try {
+    const { data } = await axios.post(
+      `${AI_ENGINE_URL}/api/ai/predict-demand`,
+      {
+        store_id: storeId,
+        products: productsData,
+        forecast_days: 7,
+      },
+      { timeout: 8000 }
+    );
+    return {
+      storeId: data.store_id,
+      forecastDays: data.forecast_days,
+      generatedAt: data.generated_at,
+      predictions: data.predictions.map((p) => ({
+        productId: p.product_id,
+        productName: p.product_name,
+        category: p.category,
+        predictedUnits: p.predicted_units,
+        trend: p.trend,
+        confidence: p.confidence,
+        avgDailySales: p.avg_daily_sales,
+      })),
+    };
+  } catch (err) {
+    logger.error('AI service unavailable for demand prediction', { message: err.message });
+    return { storeId, forecastDays: 7, predictions: [], generatedAt: new Date().toISOString() };
+  }
+};
+
+module.exports = { analyzeTransaction, analyzeInventory, analyzeVirtualTryOn, suggestPrice, predictDemand };
