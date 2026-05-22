@@ -1,13 +1,13 @@
 const axios = require('axios');
-const { Anthropic } = require('@anthropic-ai/sdk');
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000';
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
+const GEMINI_VISION_MODEL = 'gemini-2.5-flash';
+const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
+const HF_IMAGE_ENDPOINT = 'https://router.huggingface.co/fal-ai/fal-ai/flux/schnell';
 
 const analyzeTransaction = async ({ orderId, amount, customerId, txHash, metadata = {} }) => {
   try {
@@ -61,92 +61,147 @@ const analyzeInventory = async ({ storeId, variantId, currentStock, lowStockThre
   }
 };
 
-const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName, capDescription }) => {
-  try {
-    const userPhotoBuffer = fs.readFileSync(userPhotoPath);
-    const capImageBuffer = fs.readFileSync(capImagePath);
+const detectMimeType = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  return 'image/jpeg';
+};
 
-    const userPhotoBase64 = userPhotoBuffer.toString('base64');
-    const capImageBase64 = capImageBuffer.toString('base64');
+const buildTryOnPrompt = async ({ userPhotoBase64, capImageBase64, userPhotoMime, capImageMime, capName }) => {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_VISION_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { inline_data: { mime_type: userPhotoMime, data: userPhotoBase64 } },
+          { inline_data: { mime_type: capImageMime, data: capImageBase64 } },
+          {
+            text: `You are writing a prompt for an AI image generator (FLUX).
+First image: a person. Second image: a baseball cap named "${capName}".
 
-    const response = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: userPhotoBase64,
-              },
-            },
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/png',
-                data: capImageBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: `Analiza estas dos imágenes:
-1. Primera imagen: La foto del usuario
-2. Segunda imagen: Una gorra llamada "${capName}" - ${capDescription}
+Write a single detailed English prompt (max 90 words) for a photorealistic photo of the SAME person from the first image now wearing the cap from the second image. Include specifically:
+- Person: gender, approximate age, hair color/length, facial features, expression, clothing visible
+- Cap: exact color, type (snapback, dad cap, trucker, etc.), logo/design/text, materials
+- Setting/background from the first image
+- Style: photorealistic, natural lighting, sharp focus, high quality, DSLR photo
 
-Por favor:
-1. Describe el rostro del usuario (color de cabello, forma de cara, etc.)
-2. Visualiza cómo se vería la gorra "${capName}" en el usuario
-3. Proporciona una descripción detallada de cómo lucirían con la gorra
-4. Estima el estilo general (casual, deportivo, formal, etc.)
-5. Proporciona recomendaciones de accesorios que combinarían bien
+Respond ONLY with the prompt text. No quotes, no markdown, no labels, no explanation.`,
+          },
+        ],
+      },
+    ],
+  };
 
-Responde en JSON con la estructura: {
-  "userDescription": "descripción del usuario",
-  "styleWithCap": "cómo se vería con la gorra",
-  "compatibility": "qué tan bien combina (excelente/bueno/moderado)",
-  "recommendations": ["recomendación 1", "recomendación 2"],
-  "viralChance": "probabilidad de que sea trending en redes (alto/medio/bajo)"
-}`,
-            },
-          ],
-        },
-      ],
-    });
+  const { data } = await axios.post(url, payload, {
+    timeout: 30000,
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-    const textContent = response.content.find((block) => block.type === 'text');
-    if (!textContent) {
-      throw new Error('No text response from Claude');
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return parts.map((p) => p.text || '').join('').trim();
+};
+
+const generateImageWithFlux = async (prompt) => {
+  const { data } = await axios.post(
+    HF_IMAGE_ENDPOINT,
+    { prompt, image_size: 'landscape_4_3', num_inference_steps: 4 },
+    {
+      headers: {
+        Authorization: `Bearer ${HF_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 90000,
     }
+  );
+  return data?.images?.[0]?.url || null;
+};
 
-    let analysisResult;
-    try {
-      const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
-      analysisResult = JSON.parse(jsonMatch ? jsonMatch[0] : textContent.text);
-    } catch {
-      analysisResult = {
-        userDescription: 'Análisis completado',
-        styleWithCap: textContent.text,
-        compatibility: 'excelente',
-        recommendations: ['Prueba con diferentes looks'],
-        viralChance: 'alto',
+const downloadImageToBuffer = async (imageUrl) => {
+  const { data } = await axios.get(imageUrl, {
+    responseType: 'arraybuffer',
+    timeout: 30000,
+  });
+  return Buffer.from(data);
+};
+
+const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => {
+  try {
+    if (!HF_TOKEN) {
+      return {
+        success: false,
+        message: 'Falta configurar HUGGINGFACE_API_TOKEN en el servidor.',
       };
     }
 
+    const userPhotoBuffer = fs.readFileSync(userPhotoPath);
+    const capImageBuffer = fs.readFileSync(capImagePath);
+    const userPhotoBase64 = userPhotoBuffer.toString('base64');
+    const capImageBase64 = capImageBuffer.toString('base64');
+    const userPhotoMime = detectMimeType(userPhotoPath);
+    const capImageMime = detectMimeType(capImagePath);
+
+    const prompt = await buildTryOnPrompt({
+      userPhotoBase64,
+      capImageBase64,
+      userPhotoMime,
+      capImageMime,
+      capName,
+    });
+
+    logger.info('Try-on prompt built', { promptLength: prompt.length, preview: prompt.substring(0, 200) });
+
+    if (!prompt) {
+      return {
+        success: false,
+        message: 'No pudimos describir las imágenes. Intenta con una foto más clara.',
+      };
+    }
+
+    const fluxImageUrl = await generateImageWithFlux(prompt);
+    logger.info('Flux image URL received', { hasUrl: Boolean(fluxImageUrl) });
+
+    if (!fluxImageUrl) {
+      return {
+        success: false,
+        message: 'La IA no pudo generar la imagen. Intenta de nuevo en unos segundos.',
+      };
+    }
+
+    const imageBuffer = await downloadImageToBuffer(fluxImageUrl);
+
+    const tryOnDir = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'client',
+      'public',
+      'uploads',
+      'products',
+      'try-on'
+    );
+    fs.mkdirSync(tryOnDir, { recursive: true });
+
+    const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.jpg`;
+    fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
+
     return {
       success: true,
-      analysis: analysisResult,
-      message: '¡Análisis completado! Mira cómo se vería la gorra contigo.',
+      generatedImageUrl: `/uploads/products/try-on/${filename}`,
+      description: `Así te imaginamos con la ${capName}. La IA generó esta visualización a partir de tu foto y la gorra.`,
+      message: '¡Imagen generada!',
     };
   } catch (err) {
-    logger.error('Virtual try-on analysis failed', { message: err.message });
+    logger.error('Virtual try-on analysis failed', {
+      message: err.message,
+      status: err.response?.status,
+      apiError: err.response?.data ? String(err.response.data).substring(0, 500) : undefined,
+    });
     return {
       success: false,
-      message: 'No pudimos analizar la imagen. Intenta con una foto más clara.',
+      message: 'No pudimos generar la imagen. Intenta de nuevo.',
       error: err.message,
     };
   }

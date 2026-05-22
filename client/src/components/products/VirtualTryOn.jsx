@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
+import api from '../../services/api';
 
 function VirtualTryOn({ productId, productName }) {
   const [userPhoto, setUserPhoto] = useState(null);
@@ -79,17 +80,11 @@ function VirtualTryOn({ productId, productName }) {
       formData.append('userPhoto', userPhoto);
       formData.append('capImage', capImage);
 
-      const response = await fetch(`/api/products/${productId}/try-on`, {
-        method: 'POST',
-        body: formData,
+      const { data } = await api.post(`/products/${productId}/try-on`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Error al analizar la imagen');
-      }
-
-      const data = await response.json();
       setAnalysis(data.data);
       setShowResults(true);
       toast.success('¡Análisis completado!', { id: toastId });
@@ -112,11 +107,14 @@ function VirtualTryOn({ productId, productName }) {
   };
 
   if (showResults && analysis) {
+    const generatedUrl = analysis.generatedImageUrl;
+    const description = analysis.description;
+
     return (
       <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-lg p-8 border border-amber-200 dark:border-amber-800">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-amber-900 dark:text-amber-100">
-            ✨ Resultado de tu Prueba Virtual
+            ✨ Así te ves con la {productName}
           </h3>
           <button
             onClick={resetForm}
@@ -128,59 +126,39 @@ function VirtualTryOn({ productId, productName }) {
 
         <div className="grid md:grid-cols-2 gap-8">
           <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-3">Tu Perfil</h4>
-            <p className="text-charcoal-700 dark:text-zinc-300 mb-4">
-              {analysis.analysis?.userDescription || 'Análisis del usuario completado'}
-            </p>
+            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-3">Tu Foto Original</h4>
             {userPhotoPreview && (
               <img
                 src={userPhotoPreview}
                 alt="Tu foto"
-                className="w-full h-auto rounded-lg shadow-md max-h-96 object-cover"
+                className="w-full h-auto rounded-lg shadow-md max-h-[480px] object-cover"
               />
             )}
           </div>
 
           <div>
-            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-3">
-              Cómo te ves con la {productName}
-            </h4>
-            <div className="bg-white dark:bg-charcoal-800 rounded-lg p-4 mb-4">
-              <p className="text-charcoal-700 dark:text-zinc-300 mb-3">
-                {analysis.analysis?.styleWithCap || 'Análisis completado'}
-              </p>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                  Compatibilidad: {analysis.analysis?.compatibility || 'Excelente'}
-                </span>
-                {analysis.analysis?.viralChance && (
-                  <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                    Viral: {analysis.analysis.viralChance}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {analysis.analysis?.recommendations && analysis.analysis.recommendations.length > 0 && (
-              <div>
-                <h5 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                  💡 Recomendaciones
-                </h5>
-                <ul className="space-y-2">
-                  {analysis.analysis.recommendations.map((rec, idx) => (
-                    <li
-                      key={idx}
-                      className="text-sm text-charcoal-700 dark:text-zinc-300 flex items-start gap-2"
-                    >
-                      <span className="text-amber-600 dark:text-amber-400 mt-1">→</span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
+            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-3">Con la Gorra Puesta</h4>
+            {generatedUrl ? (
+              <img
+                src={generatedUrl}
+                alt={`Tú con la gorra ${productName}`}
+                className="w-full h-auto rounded-lg shadow-md max-h-[480px] object-cover"
+              />
+            ) : (
+              <div className="bg-white dark:bg-charcoal-800 rounded-lg p-6 text-center text-charcoal-600 dark:text-zinc-400">
+                La IA no pudo generar la imagen esta vez.
               </div>
             )}
           </div>
         </div>
+
+        {description && (
+          <div className="mt-6 bg-white dark:bg-charcoal-800 rounded-lg p-4">
+            <p className="text-charcoal-700 dark:text-zinc-300 text-sm leading-relaxed">
+              {description}
+            </p>
+          </div>
+        )}
 
         <div className="mt-8 pt-6 border-t border-amber-200 dark:border-amber-800">
           <p className="text-center text-charcoal-600 dark:text-zinc-400 mb-4">
