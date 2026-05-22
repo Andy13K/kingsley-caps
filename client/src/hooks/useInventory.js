@@ -13,6 +13,9 @@ export default function useInventory() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
+  const [demandPredictions, setDemandPredictions] = useState(null);
+  const [isLoadingPredictions, setIsLoadingPredictions] = useState(false);
+  const [predictionsError, setPredictionsError] = useState(null);
 
   const fetchVariants = useCallback(async () => {
     setLoading(true);
@@ -76,5 +79,22 @@ export default function useInventory() {
     URL.revokeObjectURL(url);
   }, [variants]);
 
-  return { variants, alerts, movements, loading, error, pagination, fetchVariants, fetchAlerts, fetchMovements, adjustStock, exportCSV };
+  const fetchDemandPredictions = useCallback(async () => {
+    setIsLoadingPredictions(true);
+    setPredictionsError(null);
+    try {
+      const { data } = await api.get('/inventory/demand-predictions');
+      setDemandPredictions(data.data);
+    } catch (err) {
+      setPredictionsError(err.message || 'No se pudieron cargar las predicciones.');
+    } finally {
+      setIsLoadingPredictions(false);
+    }
+  }, []);
+
+  return {
+    variants, alerts, movements, loading, error, pagination,
+    fetchVariants, fetchAlerts, fetchMovements, adjustStock, exportCSV,
+    demandPredictions, isLoadingPredictions, predictionsError, fetchDemandPredictions,
+  };
 }
