@@ -19,6 +19,7 @@ router.post(
   validate(createOrderSchema),
   orderController.create
 );
+router.get('/my', authorize('customer'), validate(listOrdersSchema, 'query'), orderController.listMy);
 router.get('/', validate(listOrdersSchema, 'query'), orderController.list);
 router.get('/:id', orderController.getById);
 

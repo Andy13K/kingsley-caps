@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useProduct } from '../hooks/useProducts';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from '../hooks/useAuth';
 import { formatCurrency } from '../utils/formatters';
 import VariantSelector from '../components/products/VariantSelector';
+import VirtualTryOn from '../components/products/VirtualTryOn';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
-
-const PLACEHOLDER_IMG = 'https://picsum.photos/seed/kc-placeholder/480/600';
 
 class ProductErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { hasError: false }; }
@@ -30,24 +30,36 @@ function ProductDetailContent() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { isAuthenticated } = useAuth();
   const { product, loading, error } = useProduct(id);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [addingToCart, setAddingToCart] = useState(false);
 
   const firstAvailableVariant = product?.variants?.find((v) => v.active && v.stock > 0);
   const activeVariant = selectedVariant ?? firstAvailableVariant ?? null;
   const price = activeVariant?.price_override ?? product?.base_price;
   const outOfStock = activeVariant ? activeVariant.stock === 0 : true;
+  const store = product?.Store ?? product?.store;
+  const isOfficial = store?.slug === 'kingsley-caps-oficial';
+  const images = product?.images ?? [];
+  const selectedImage = images[selectedImageIndex] ?? images[0] ?? null;
 
   const handleAddToCart = async () => {
-    if (!activeVariant) { toast.error('Selecciona una variante'); return; }
-    if (outOfStock) { toast.error('Sin stock disponible'); return; }
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/products/${id}` } });
+      return false;
+    }
+    if (!activeVariant) { toast.error('Selecciona una variante'); return false; }
+    if (outOfStock) { toast.error('Sin stock disponible'); return false; }
     setAddingToCart(true);
     try {
-      addItem(product, activeVariant, 1);
+      await addItem(product, activeVariant, 1);
       toast.success(`${product.name} agregado al carrito`);
-    } catch { toast.error('No se pudo agregar al carrito'); }
+      return true;
+    } catch (err) { toast.error(err.message || 'No se pudo agregar al carrito'); }
     finally { setAddingToCart(false); }
+    return false;
   };
 
   if (loading) {
@@ -81,22 +93,63 @@ function ProductDetailContent() {
           Volver
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-fade-up">
-          <div className="rounded-3xl overflow-hidden border border-charcoal-100 dark:border-white/10 bg-charcoal-50 dark:bg-charcoal-800 aspect-[4/5] relative">
-            <img src={product.images?.[0] ?? PLACEHOLDER_IMG} alt={product.name} className="w-full h-full object-cover" />
-            {product.variants?.some((v) => v.active && v.stock > 0 && v.stock <= v.low_stock_threshold) && (
-              <div className="absolute top-4 left-4">
-                <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold px-3 py-1.5 rounded-full">
-                  Pocas unidades
-                </span>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] gap-12 animate-fade-up">
+          <div className="flex flex-col gap-4">
+            <div className="rounded-2xl overflow-hidden border border-charcoal-100 dark:border-white/10 bg-gradient-to-b from-white to-charcoal-50 dark:from-charcoal-800 dark:to-charcoal-900 aspect-[4/3] relative">
+              {selectedImage ? (
+                <img src={selectedImage} alt={product.name} className="w-full h-full object-contain p-4 sm:p-6" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center px-6 text-center text-sm font-semibold text-charcoal-500 dark:text-zinc-400">
+                  Sin imagen cargada
+                </div>
+              )}
+              {product.variants?.some((v) => v.active && v.stock > 0 && v.stock <= v.low_stock_threshold) && (
+                <div className="absolute top-4 left-4">
+                  <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold px-3 py-1.5 rounded-full">
+                    Pocas unidades
+                  </span>
+                </div>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {images.slice(0, 5).map((image, index) => (
+                  <button
+                    type="button"
+                    key={image}
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`aspect-[4/3] rounded-xl overflow-hidden border bg-white dark:bg-charcoal-900 transition-all duration-200 ${
+                      selectedImageIndex === index
+                        ? 'border-gold dark:border-gold-light shadow-sm'
+                        : 'border-charcoal-100 dark:border-white/10 hover:border-charcoal-300 dark:hover:border-white/25'
+                    }`}
+                    aria-label={`Ver imagen ${index + 1} de ${product.name}`}
+                  >
+                    <img src={image} alt="" className="w-full h-full object-contain p-1.5" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
 
           <div className="flex flex-col gap-6 lg:py-4">
             <div className="animate-fade-up">
-              <span className="text-gold-dark text-xs font-semibold uppercase tracking-widest">{product.category}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-gold-dark text-xs font-semibold uppercase tracking-widest">{product.category}</span>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-charcoal-100 dark:bg-charcoal-800 text-charcoal-800 dark:text-zinc-200">
+                  {isOfficial ? 'Gorra propia de Kingsley' : 'Gorra de vendedor'}
+                </span>
+              </div>
               <h1 className="text-4xl font-black text-charcoal-950 dark:text-zinc-50 tracking-tight mt-2 leading-tight">{product.name}</h1>
+              {store?.slug && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/stores/${store.slug}`)}
+                  className="mt-2 text-sm font-semibold text-blue-dark dark:text-blue-light hover:underline"
+                >
+                  {store.name}
+                </button>
+              )}
               {product.description && (
                 <p className="text-charcoal-800/75 dark:text-zinc-400 mt-3 leading-relaxed">{product.description}</p>
               )}
@@ -120,7 +173,7 @@ function ProductDetailContent() {
                 {outOfStock ? 'Sin stock disponible' : 'Agregar al carrito'}
               </Button>
               {!outOfStock && (
-                <Button size="lg" variant="blue" className="w-full" onClick={async () => { await handleAddToCart(); navigate('/cart'); }}>
+                <Button size="lg" variant="blue" className="w-full" onClick={async () => { if (await handleAddToCart()) navigate('/cart'); }}>
                   Comprar ahora
                 </Button>
               )}
@@ -133,7 +186,7 @@ function ProductDetailContent() {
                 { icon: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z', text: 'Pago en ETH, tarjeta o transferencia' },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2.5 text-sm text-charcoal-800/75 dark:text-zinc-400">
-                  <svg className="w-4 h-4 text-gold flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg className="w-4 h-4 text-gold dark:text-gold-light flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                   </svg>
                   {item.text}
@@ -141,6 +194,10 @@ function ProductDetailContent() {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mt-16 py-12 border-t border-charcoal-100 dark:border-white/10">
+          <VirtualTryOn productId={product.id} productName={product.name} />
         </div>
       </div>
     </div>

@@ -1,14 +1,18 @@
 import { formatCurrency } from '../../utils/formatters';
 
-const PLACEHOLDER_IMG = 'https://picsum.photos/seed/kc-placeholder/80/80';
-
 export default function CartItem({ item, onUpdateQuantity, onRemove }) {
   const subtotal = item.price * item.quantity;
 
   return (
     <div className="flex gap-4 p-5">
       <div className="w-20 h-20 rounded-xl overflow-hidden border border-charcoal-100 dark:border-white/10 flex-shrink-0 bg-charcoal-50 dark:bg-charcoal-800">
-        <img src={item.image ?? PLACEHOLDER_IMG} alt={item.name} className="w-full h-full object-cover" />
+        {item.image ? (
+          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[10px] text-charcoal-500 dark:text-zinc-400 text-center px-2">
+            Sin imagen
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">

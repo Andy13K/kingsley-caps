@@ -4,9 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import CartItem from '../components/cart/CartItem';
 import CartSummary from '../components/cart/CartSummary';
 import Button from '../components/ui/Button';
+import Spinner from '../components/ui/Spinner';
 
 export default function Cart() {
-  const { items, total, updateQuantity, removeItem } = useCart();
+  const { items, total, loading, error, updateQuantity, removeItem } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -21,6 +22,14 @@ export default function Cart() {
         <h2 className="text-xl font-black text-charcoal-950 dark:text-zinc-50 mb-1">Inicia sesión primero</h2>
         <p className="text-charcoal-800/70 dark:text-zinc-400 text-sm mb-6">Necesitas una cuenta para ver tu carrito.</p>
         <Button onClick={() => navigate('/login')}>Iniciar sesión</Button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center bg-cream dark:bg-charcoal-950">
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -44,12 +53,17 @@ export default function Cart() {
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
       <div className="bg-white dark:bg-charcoal-950 border-b border-charcoal-100 dark:border-white/10 py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <span className="text-gold text-xs font-semibold uppercase tracking-widest">Tu selección</span>
+          <span className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest">Tu selección</span>
           <h1 className="text-4xl font-black text-charcoal-950 dark:text-white tracking-tight mt-1">Mi carrito</h1>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {error && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
+            {error}
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 animate-fade-up">
             <div className="bg-white dark:bg-charcoal-900 rounded-2xl border border-charcoal-100 dark:border-white/10 divide-y divide-charcoal-50 dark:divide-white/10 overflow-hidden">
@@ -69,7 +83,7 @@ export default function Cart() {
           </div>
 
           <div className="lg:col-span-1 animate-fade-up delay-100">
-            <CartSummary items={items} total={total} onCheckout={() => navigate('/checkout')} />
+            <CartSummary items={items} total={total} loading={loading} onCheckout={() => navigate('/checkout')} />
           </div>
         </div>
       </div>

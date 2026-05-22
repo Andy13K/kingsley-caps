@@ -54,6 +54,7 @@ const sanitizeUser = (user) => ({
   name: user.name,
   email: user.email,
   phone: user.phone,
+  address: user.address,
   role: user.role,
   status: user.status,
   createdAt: user.created_at,
@@ -177,7 +178,7 @@ const refresh = async (rawRefreshToken) => {
 };
 
 const logout = async (rawRefreshToken) => {
-  if (!rawRefreshToken) return;
+  if (!rawRefreshToken) {return;}
 
   const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
   await RefreshToken.update(

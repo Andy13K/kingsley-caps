@@ -67,15 +67,23 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center font-black text-white text-sm tracking-tight transition-transform duration-200 group-hover:scale-105">
-              KC
-            </div>
+            <img
+              src="/assets/kingsley/brand/logo.jpg"
+              alt="Kingsley Caps"
+              className="w-9 h-9 rounded-lg object-cover border border-gold/30 transition-transform duration-200 group-hover:scale-105"
+            />
             <span className="font-bold text-charcoal-950 dark:text-white tracking-tight hidden sm:block">Kingsley Caps</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/catalog" className={navLink}>Catálogo</Link>
             {isAuthenticated && <Link to="/orders" className={navLink}>Mis órdenes</Link>}
+            {isAuthenticated && ['vendor', 'staff', 'superadmin'].includes(user?.role) && (
+              <Link to="/vendor/dashboard" className={navLink}>Panel vendedor</Link>
+            )}
+            {isAuthenticated && user?.role === 'superadmin' && (
+              <Link to="/admin/dashboard" className={navLink}>Admin</Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-1">
@@ -107,7 +115,7 @@ export default function Navbar() {
                 </button>
                 <button
                   onClick={() => navigate('/register')}
-                  className="text-sm font-semibold bg-gold hover:bg-gold-dark text-white px-4 py-1.5 rounded-lg transition-colors duration-200 active:scale-95"
+                  className="text-sm font-semibold bg-gold hover:bg-gold-dark text-white dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold px-4 py-1.5 rounded-lg transition-colors duration-200 active:scale-95"
                 >
                   Registro
                 </button>
@@ -132,6 +140,12 @@ export default function Navbar() {
           <div className="md:hidden border-t border-charcoal-100 dark:border-white/10 py-4 flex flex-col gap-3 animate-fade-in">
             <Link to="/catalog" className="text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium">Catálogo</Link>
             {isAuthenticated && <Link to="/orders" className="text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium">Mis órdenes</Link>}
+            {isAuthenticated && ['vendor', 'staff', 'superadmin'].includes(user?.role) && (
+              <Link to="/vendor/dashboard" className="text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium">Panel vendedor</Link>
+            )}
+            {isAuthenticated && user?.role === 'superadmin' && (
+              <Link to="/admin/dashboard" className="text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium">Admin</Link>
+            )}
             <button
               onClick={toggle}
               className="text-left text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium flex items-center gap-2"
@@ -144,7 +158,7 @@ export default function Navbar() {
             ) : (
               <div className="flex flex-col gap-2 pt-2">
                 <button onClick={() => navigate('/login')} className="text-left text-charcoal-800 dark:text-zinc-300 px-2 py-1 text-sm font-medium">Ingresar</button>
-                <button onClick={() => navigate('/register')} className="bg-gold text-white rounded-lg px-4 py-2 text-sm font-semibold text-center">Crear cuenta</button>
+                <button onClick={() => navigate('/register')} className="bg-gold text-white dark:bg-gold-light dark:text-charcoal-950 rounded-lg px-4 py-2 text-sm font-semibold text-center">Crear cuenta</button>
               </div>
             )}
           </div>

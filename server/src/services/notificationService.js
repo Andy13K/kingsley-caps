@@ -1,7 +1,5 @@
-const { Op } = require('sequelize');
 const { Notification, User, Store } = require('../models');
 const AppError = require('../utils/AppError');
-const logger = require('../utils/logger');
 
 const createNotification = async ({ userId, storeId = null, type, title, message, metadata = {} }) => {
   const notification = await Notification.create({ user_id: userId, store_id: storeId, type, title, message, metadata });
@@ -10,7 +8,7 @@ const createNotification = async ({ userId, storeId = null, type, title, message
 
 const createLowStockAlert = async ({ variant, stockAfter }) => {
   const store = await Store.findOne({ where: { id: variant.store_id } });
-  if (!store) return;
+  if (!store) {return;}
 
   await Notification.create({
     user_id: store.vendor_id,
@@ -99,9 +97,10 @@ const createDiscrepancyAlert = async ({ payment, order }) => {
   );
 };
 
-const getUserNotifications = async ({ userId, unreadOnly = false, page = 1, limit = 20 }) => {
+const getUserNotifications = async ({ userId, unreadOnly = false, type, page = 1, limit = 20 }) => {
   const where = { user_id: userId };
-  if (unreadOnly) where.read = false;
+  if (unreadOnly) {where.read = false;}
+  if (type) {where.type = type;}
 
   const { count: total, rows: notifications } = await Notification.findAndCountAll({
     where,

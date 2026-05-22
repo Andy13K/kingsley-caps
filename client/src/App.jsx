@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
+import Storefront from './pages/Storefront';
 import Catalog from './pages/Catalog';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
@@ -15,6 +16,7 @@ import Checkout from './pages/Checkout';
 import CryptoCheckout from './pages/CryptoCheckout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import VendorDashboard from './pages/vendor/Dashboard';
+import VendorProducts from './pages/vendor/Products';
 import VendorInventory from './pages/vendor/Inventory';
 import VendorOrders from './pages/vendor/Orders';
 import VendorSettings from './pages/vendor/Settings';
@@ -61,6 +63,7 @@ export default function App() {
       >
         <Route index element={<Navigate to="/vendor/dashboard" replace />} />
         <Route path="dashboard" element={<VendorDashboard />} />
+        <Route path="products" element={<VendorProducts />} />
         <Route path="inventory" element={<VendorInventory />} />
         <Route path="orders" element={<VendorOrders />} />
         <Route path="settings" element={<VendorSettings />} />
@@ -83,6 +86,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/stores/:slug" element={<Storefront />} />
                 <Route path="/catalog" element={<Catalog />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

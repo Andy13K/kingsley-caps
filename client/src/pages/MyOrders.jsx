@@ -24,6 +24,13 @@ const PAYMENT_LABELS = {
 };
 
 const LIMIT = 10;
+const TRACE_STEPS = [
+  ['paid', 'Recibido'],
+  ['preparing', 'Empacado'],
+  ['packed', 'Listo'],
+  ['shipped', 'En ruta'],
+  ['delivered', 'Entregado'],
+];
 
 function PaymentIcon({ method }) {
   if (method === 'crypto_eth') {
@@ -50,6 +57,7 @@ function PaymentIcon({ method }) {
 function OrderDetailModal({ order, onClose }) {
   if (!order) return null;
   const status = STATUS[order.status] ?? { label: order.status, variant: 'gray' };
+  const activeStep = Math.max(0, TRACE_STEPS.findIndex(([key]) => key === order.status));
 
   return (
     <Modal isOpen={!!order} onClose={onClose} title={`Orden #${order.id.slice(-8).toUpperCase()}`}>
@@ -57,6 +65,18 @@ function OrderDetailModal({ order, onClose }) {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
           <span className="text-xs text-charcoal-800/75 dark:text-zinc-400 font-medium">{formatDate(order.createdAt)}</span>
+        </div>
+
+        <div className="grid grid-cols-5 gap-2">
+          {TRACE_STEPS.map(([key, label], index) => {
+            const active = index <= activeStep && !['cancelled', 'refunded', 'pending_payment'].includes(order.status);
+            return (
+              <div key={key} className="text-center">
+                <div className={`mx-auto h-2 rounded-full ${active ? 'bg-gold' : 'bg-charcoal-100 dark:bg-charcoal-800'}`} />
+                <p className={`mt-1 text-[11px] font-semibold ${active ? 'text-gold-dark dark:text-gold-light' : 'text-charcoal-500 dark:text-zinc-500'}`}>{label}</p>
+              </div>
+            );
+          })}
         </div>
 
         <div>
@@ -102,10 +122,10 @@ function OrderDetailModal({ order, onClose }) {
 
         {order.trackingNumber && (
           <div className="bg-charcoal-50 dark:bg-charcoal-900 border border-charcoal-100 dark:border-white/10 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gold uppercase tracking-widest mb-1">Número de guía</p>
-            <p className="font-mono font-bold text-white">{order.trackingNumber}</p>
+            <p className="text-xs font-semibold text-gold dark:text-gold-light uppercase tracking-widest mb-1">Número de guía</p>
+            <p className="font-mono font-bold text-charcoal-950 dark:text-white">{order.trackingNumber}</p>
             {order.trackingCompany && (
-              <p className="text-xs text-zinc-400 mt-0.5">{order.trackingCompany}</p>
+              <p className="text-xs text-charcoal-600 dark:text-zinc-400 mt-0.5">{order.trackingCompany}</p>
             )}
           </div>
         )}
@@ -134,7 +154,7 @@ export default function MyOrders() {
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
       <div className="bg-white dark:bg-charcoal-950 border-b border-charcoal-100 dark:border-white/10 py-14 px-4">
         <div className="max-w-4xl mx-auto">
-          <span className="text-gold text-xs font-semibold uppercase tracking-widest">Tu historial</span>
+          <span className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest">Tu historial</span>
           <h1 className="text-4xl font-black text-charcoal-950 dark:text-white tracking-tight mt-1">Mis órdenes</h1>
         </div>
       </div>

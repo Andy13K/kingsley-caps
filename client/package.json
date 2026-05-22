@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint \"src/**/*.{js,jsx}\""
+    "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "test": "echo \"No hay tests en el frontend\" && exit 0"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",

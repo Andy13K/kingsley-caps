@@ -7,7 +7,11 @@ build/
 coverage/
 .vite/
 client/.vite/
+client/public/uploads/
 .DS_Store
 Thumbs.db
 .vscode/
 postgres_data/
+.postgres-data/
+.postgres-portable/
+postgresql-*-binaries.zip

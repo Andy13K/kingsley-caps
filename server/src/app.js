@@ -18,6 +18,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

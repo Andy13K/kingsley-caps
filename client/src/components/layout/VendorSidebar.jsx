@@ -14,6 +14,15 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: '/vendor/products',
+    label: 'Productos',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L12 6.75l5.571 3m0 0L21.75 12l-4.179 2.25m0-4.5v4.5m0 0L12 17.25l-5.571-3m11.142 0v4.5L12 21.75l-5.571-3v-4.5" />
+      </svg>
+    ),
+  },
+  {
     to: '/vendor/inventory',
     label: 'Inventario',
     icon: (
@@ -77,7 +86,7 @@ export default function VendorSidebar({ onClose }) {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                 isActive
-                  ? 'bg-gold/15 text-gold border border-gold/20'
+                  ? 'bg-gold/15 text-gold-light border border-gold-light/30'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`
             }

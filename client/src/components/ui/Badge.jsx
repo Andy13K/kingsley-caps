@@ -4,7 +4,7 @@ const variants = {
   danger:  'bg-red-50    dark:bg-red-950/50    text-red-700    dark:text-red-400    border border-red-200    dark:border-red-800',
   info:    'bg-blue-muted dark:bg-blue-950/50  text-blue-dark  dark:text-blue-light border border-blue-200   dark:border-blue-800',
   gray:    'bg-charcoal-50 dark:bg-charcoal-900 text-charcoal-800/70 dark:text-zinc-400 border border-charcoal-100 dark:border-white/10',
-  gold:    'bg-gold-muted dark:bg-amber-950/40 text-gold-dark dark:text-amber-400 border border-gold/20 dark:border-amber-700/40',
+  gold:    'bg-gold-muted dark:bg-gold/20 text-gold-dark dark:text-gold-light border border-gold/20 dark:border-gold-light/30',
 };
 
 export default function Badge({ children, variant = 'gray', className = '' }) {

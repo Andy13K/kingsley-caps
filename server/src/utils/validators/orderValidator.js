@@ -9,13 +9,21 @@ const shippingAddressSchema = Joi.object({
 });
 
 const createOrderSchema = Joi.object({
-  storeId: Joi.string().uuid().required(),
+  storeId: Joi.string().uuid(),
+  items: Joi.array().items(
+    Joi.object({
+      variantId: Joi.string().uuid(),
+      productVariantId: Joi.string().uuid(),
+      quantity: Joi.number().integer().min(1).required(),
+      unitPrice: Joi.number().precision(2).min(0),
+    }).or('variantId', 'productVariantId')
+  ).min(1),
   shippingAddress: shippingAddressSchema.required(),
   paymentMethod: Joi.string().valid('crypto_eth', 'card', 'transfer').required(),
   shippingMethod: Joi.string().max(100),
   shippingAmount: Joi.number().precision(2).min(0).default(0),
   customerNotes: Joi.string().max(1000).allow('', null),
-});
+}).or('storeId', 'items');
 
 const updateStatusSchema = Joi.object({
   status: Joi.string()

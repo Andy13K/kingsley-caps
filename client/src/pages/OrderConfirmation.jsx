@@ -36,7 +36,7 @@ export default function OrderConfirmation() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <span className="text-gold text-xs font-semibold uppercase tracking-widest">Pedido recibido</span>
+        <span className="text-gold dark:text-gold-light text-xs font-semibold uppercase tracking-widest">Pedido recibido</span>
         <h1 className="text-4xl font-black text-charcoal-950 dark:text-white tracking-tight mt-2">Orden confirmada</h1>
         <p className="text-charcoal-800 dark:text-zinc-400 mt-2 max-w-sm mx-auto leading-relaxed">
           Gracias por tu compra. Te avisaremos cuando tu pedido esté en camino.

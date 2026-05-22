@@ -14,9 +14,24 @@ const getMine = asyncHandler(async (req, res) => {
   res.json({ success: true, data: store });
 });
 
+const getPublicBySlug = asyncHandler(async (req, res) => {
+  const store = await storeService.findPublicBySlug(req.params.slug);
+  res.json({ success: true, data: { store } });
+});
+
 const update = asyncHandler(async (req, res) => {
   const store = await storeService.update({
     id: req.params.id,
+    vendorId: req.user.id,
+    payload: req.body,
+  });
+  res.json({ success: true, data: store });
+});
+
+const updateMine = asyncHandler(async (req, res) => {
+  const mine = await storeService.findMine(req.user.id);
+  const store = await storeService.update({
+    id: mine.id,
     vendorId: req.user.id,
     payload: req.body,
   });
@@ -40,4 +55,4 @@ const publish = asyncHandler(async (req, res) => {
   res.json({ success: true, data: store });
 });
 
-module.exports = { create, getMine, update, updateCryptoConfig, publish };
+module.exports = { create, getMine, getPublicBySlug, update, updateMine, updateCryptoConfig, publish };

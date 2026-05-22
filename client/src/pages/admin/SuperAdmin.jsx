@@ -19,17 +19,18 @@ const STATUS_COLOR = {
 };
 const STATUS_LABEL = { active: 'Activa', draft: 'Pendiente', suspended: 'Suspendida' };
 const PLAN_COLOR = {
-  pro: 'bg-gold/15 text-gold',
+  pro: 'bg-gold/15 text-gold-dark dark:text-gold-light',
   basic: 'bg-zinc-100 text-zinc-600 dark:bg-charcoal-800 dark:text-zinc-400',
 };
 
 export default function SuperAdmin() {
-  const { stores, metrics, discrepancies, loading, fetchStores, fetchDashboardMetrics, approveStore, suspendStore } = useAdmin();
+  const { stores, metrics, inventory, discrepancies, loading, fetchStores, fetchDashboardMetrics, fetchInventory, approveStore, suspendStore, reactivateStore } = useAdmin();
 
   useEffect(() => {
     fetchStores();
     fetchDashboardMetrics();
-  }, [fetchStores, fetchDashboardMetrics]);
+    fetchInventory();
+  }, [fetchStores, fetchDashboardMetrics, fetchInventory]);
 
   const handleApprove = async (id, name) => {
     try {
@@ -49,6 +50,15 @@ export default function SuperAdmin() {
     }
   };
 
+  const handleReactivate = async (id, name) => {
+    try {
+      await reactivateStore(id);
+      toast.success(`Tienda "${name}" reactivada`);
+    } catch {
+      toast.error('Error al reactivar tienda');
+    }
+  };
+
   const pendingStores = stores.filter((s) => s.status === 'draft');
   const activeStores = stores.filter((s) => s.status !== 'draft');
 
@@ -63,10 +73,10 @@ export default function SuperAdmin() {
       {metrics && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total tiendas', value: metrics.totalStores, sub: `${metrics.activeStores} activas`, color: 'text-gold' },
+            { label: 'Total tiendas', value: metrics.totalStores, sub: `${metrics.activeStores} activas`, color: 'text-gold dark:text-gold-light' },
             { label: 'Usuarios registrados', value: metrics.totalUsers, sub: 'en la plataforma', color: 'text-charcoal-950 dark:text-white' },
-            { label: 'Ventas totales', value: `Q${(metrics.totalSalesGtq || 0).toLocaleString('es-GT')}`, sub: 'GTQ acumulado', color: 'text-gold' },
-            { label: 'Ventas en ETH', value: `${metrics.totalSalesEth || '0'} ETH`, sub: 'crypto recibido', color: 'text-charcoal-950 dark:text-white' },
+            { label: 'Productos', value: metrics.totalProducts || 0, sub: `${metrics.totalStock || 0} unidades en stock`, color: 'text-gold dark:text-gold-light' },
+            { label: 'Ventas totales', value: `Q${(metrics.totalSalesGtq || 0).toLocaleString('es-GT')}`, sub: 'GTQ acumulado', color: 'text-charcoal-950 dark:text-white' },
           ].map((m) => (
             <div key={m.label} className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 p-5 shadow-sm">
               <p className="text-xs font-medium text-charcoal-500 dark:text-zinc-400 uppercase tracking-wide">{m.label}</p>
@@ -76,6 +86,49 @@ export default function SuperAdmin() {
           ))}
         </div>
       )}
+
+      <section className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-charcoal-100 dark:border-white/10">
+          <h2 className="text-sm font-semibold text-charcoal-950 dark:text-white">Inventario global por tienda</h2>
+          <p className="text-xs text-charcoal-500 dark:text-zinc-400 mt-1">Vista del dueño: stock propio de Kingsley y stock de vendedores.</p>
+        </div>
+        {inventory.length === 0 ? (
+          <p className="text-center py-8 text-sm text-charcoal-400 dark:text-zinc-500">Sin inventario registrado</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-charcoal-100 dark:border-white/10">
+                  {['Tienda', 'Tipo', 'Vendedor', 'Productos', 'Variantes', 'Stock', 'Alertas'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-charcoal-500 dark:text-zinc-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-charcoal-50 dark:divide-white/5">
+                {inventory.map((row) => (
+                  <tr key={row.id} className="hover:bg-charcoal-50/50 dark:hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3 font-medium text-charcoal-900 dark:text-white">{row.name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${row.is_official ? 'bg-gold/15 text-gold-dark dark:text-gold-light' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                        {row.is_official ? 'Kingsley' : 'Vendedor'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-charcoal-600 dark:text-zinc-400">{row.vendor_name}</td>
+                    <td className="px-4 py-3 text-charcoal-700 dark:text-zinc-300">{row.product_count}</td>
+                    <td className="px-4 py-3 text-charcoal-700 dark:text-zinc-300">{row.variant_count}</td>
+                    <td className="px-4 py-3 font-bold text-charcoal-950 dark:text-white">{row.stock}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${row.low_stock > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'}`}>
+                        {row.low_stock}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* Pending stores */}
       <section className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 shadow-sm overflow-hidden">
@@ -89,7 +142,7 @@ export default function SuperAdmin() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10"><Spinner size="lg" className="text-gold" /></div>
+          <div className="flex justify-center py-10"><Spinner size="lg" className="text-gold dark:text-gold-light" /></div>
         ) : pendingStores.length === 0 ? (
           <p className="text-center py-8 text-sm text-charcoal-400 dark:text-zinc-500">Sin tiendas pendientes ✓</p>
         ) : (
@@ -158,7 +211,14 @@ export default function SuperAdmin() {
                       {new Date(s.created_at).toLocaleDateString('es-GT')}
                     </td>
                     <td className="px-4 py-3">
-                      {s.status !== 'suspended' && (
+                      {s.status === 'suspended' ? (
+                        <button
+                          onClick={() => handleReactivate(s.id, s.name)}
+                          className="text-xs font-medium text-green-600 hover:text-green-800 transition-colors"
+                        >
+                          Reactivar
+                        </button>
+                      ) : (
                         <button
                           onClick={() => handleSuspend(s.id, s.name)}
                           className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
