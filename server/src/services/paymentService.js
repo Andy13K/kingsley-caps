@@ -31,6 +31,27 @@ const initiateCryptoPayment = async ({ orderId, userId }) => {
     throw new AppError('La tienda no tiene dirección de wallet configurada', 400);
   }
 
+  const existingPayment = await PaymentTransaction.findOne({
+    where: { order_id: orderId, status: 'pending' },
+    order: [['created_at', 'DESC']],
+  });
+  if (existingPayment && new Date() <= new Date(existingPayment.expires_at)) {
+    const amountEth = Number(existingPayment.amount_crypto).toFixed(8);
+    return {
+      paymentId: existingPayment.id,
+      walletAddress: existingPayment.wallet_to,
+      walletTo: existingPayment.wallet_to,
+      amountEth,
+      amountGtq: existingPayment.amount_fiat,
+      exchangeRate: existingPayment.exchange_rate,
+      rateLockedAt: existingPayment.rate_locked_at,
+      expiresAt: existingPayment.expires_at,
+      nonce: existingPayment.nonce,
+      network: existingPayment.network,
+      qrData: `ethereum:${existingPayment.wallet_to}?amount=${amountEth}&memo=${existingPayment.nonce}`,
+    };
+  }
+
   const rate = await priceService.getCryptoRate();
   const amountEth = (order.total / rate.eth_gtq).toFixed(8);
   const nonce = `kc_${uuidv4().replace(/-/g, '').substring(0, 16)}`;
@@ -181,6 +202,130 @@ const verifyCryptoPayment = async ({ paymentId, txHash, userId }) => {
   };
 };
 
+const assertCanReviewStorePayment = (payment, user) => {
+  if (!payment?.Store) {
+    throw new AppError('Tienda no encontrada para este pago', 404);
+  }
+  if (user.role === 'superadmin') {
+    return;
+  }
+  if (['vendor', 'staff', 'superadmin'].includes(user.role) && payment.Store.vendor_id === user.id) {
+    return;
+  }
+  throw new AppError('No tienes acceso a validar este pago', 403);
+};
+
+const findTransferPaymentForReview = async (paymentId) => {
+  const payment = await PaymentTransaction.findOne({
+    where: { id: paymentId, method: 'transfer' },
+    include: [{ model: Order }, { model: Store }],
+  });
+  if (!payment) throw new AppError('Pago por transferencia no encontrado', 404);
+  return payment;
+};
+
+const submitTransferProof = async ({ orderId, userId, file, reference }) => {
+  if (!file) {
+    throw new AppError('Debes adjuntar un comprobante de pago', 400);
+  }
+
+  const order = await Order.findOne({
+    where: { id: orderId },
+    include: [{ model: Store }],
+  });
+
+  if (!order) throw new AppError('Orden no encontrada', 404);
+  if (order.customer_id !== userId) throw new AppError('No tienes acceso a esta orden', 403);
+  if (order.payment_method !== 'transfer') throw new AppError('Esta orden no usa transferencia bancaria', 400);
+  if (order.status !== 'pending_payment') throw new AppError('Esta orden ya no esta pendiente de pago', 400);
+
+  const proofUrl = `/uploads/proofs/${file.filename}`;
+  const [payment] = await PaymentTransaction.findOrCreate({
+    where: { order_id: orderId, method: 'transfer' },
+    defaults: {
+      order_id: orderId,
+      store_id: order.store_id,
+      method: 'transfer',
+      amount_fiat: order.total,
+      currency_fiat: order.currency || 'GTQ',
+      status: 'pending',
+      initiated_at: new Date(),
+    },
+  });
+
+  await payment.update({
+    amount_fiat: order.total,
+    currency_fiat: order.currency || 'GTQ',
+    status: 'pending',
+    transfer_proof_url: proofUrl,
+    transfer_reference: reference || null,
+    submitted_at: new Date(),
+  });
+
+  if (order.Store?.vendor_id) {
+    await notificationService.createNotification({
+      userId: order.Store.vendor_id,
+      storeId: order.store_id,
+      type: 'transfer_proof_submitted',
+      title: 'Comprobante recibido',
+      message: `El cliente subio comprobante para el pedido #${String(order.id).slice(0, 8).toUpperCase()}.`,
+      metadata: { orderId: order.id, paymentId: payment.id, proofUrl },
+    });
+  }
+
+  return { order, payment };
+};
+
+const approveTransferPayment = async ({ paymentId, user }) => {
+  const payment = await findTransferPaymentForReview(paymentId);
+  assertCanReviewStorePayment(payment, user);
+  if (!payment.transfer_proof_url) {
+    throw new AppError('Este pago aun no tiene comprobante adjunto', 400);
+  }
+  if (payment.status === 'confirmed') {
+    return { order: payment.Order, payment };
+  }
+
+  const confirmedAt = new Date();
+  await payment.update({
+    status: 'confirmed',
+    reviewed_at: confirmedAt,
+    reviewed_by: user.id,
+    confirmed_at: confirmedAt,
+  });
+  await payment.Order.update({
+    status: 'paid',
+    paid_at: confirmedAt,
+    payment_method: 'transfer',
+  });
+  await payment.Order.reload();
+
+  await notificationService.createPaymentConfirmedNotification({ order: payment.Order, payment });
+  return { order: payment.Order, payment };
+};
+
+const rejectTransferPayment = async ({ paymentId, user }) => {
+  const payment = await findTransferPaymentForReview(paymentId);
+  assertCanReviewStorePayment(payment, user);
+
+  await payment.update({
+    status: 'failed',
+    reviewed_at: new Date(),
+    reviewed_by: user.id,
+  });
+
+  await notificationService.createNotification({
+    userId: payment.Order.customer_id,
+    storeId: payment.store_id,
+    type: 'transfer_proof_rejected',
+    title: 'Comprobante rechazado',
+    message: `El comprobante del pedido #${String(payment.order_id).slice(0, 8).toUpperCase()} fue rechazado. Puedes subir uno nuevo.`,
+    metadata: { orderId: payment.order_id, paymentId: payment.id },
+  });
+
+  return { order: payment.Order, payment };
+};
+
 const getPaymentByOrderId = async ({ orderId, userId }) => {
   const payment = await PaymentTransaction.findOne({
     where: { order_id: orderId },
@@ -194,4 +339,11 @@ const getPaymentByOrderId = async ({ orderId, userId }) => {
   return payment;
 };
 
-module.exports = { initiateCryptoPayment, verifyCryptoPayment, getPaymentByOrderId };
+module.exports = {
+  initiateCryptoPayment,
+  verifyCryptoPayment,
+  submitTransferProof,
+  approveTransferPayment,
+  rejectTransferPayment,
+  getPaymentByOrderId,
+};

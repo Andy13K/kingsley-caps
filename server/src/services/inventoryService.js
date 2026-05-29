@@ -59,7 +59,7 @@ const getAlerts = async ({ storeId }) => {
   const variants = await ProductVariant.findAll({
     where: {
       store_id: storeId,
-      [Op.and]: sequelize.literal('"product_variant"."stock" <= "product_variant"."low_stock_threshold"'),
+      [Op.and]: sequelize.literal('"ProductVariant"."stock" <= "ProductVariant"."low_stock_threshold"'),
     },
     include: [{ model: Product }],
   });

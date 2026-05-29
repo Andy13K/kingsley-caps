@@ -14,6 +14,7 @@ const {
 } = require('../models');
 const { platformCommissionRate } = require('../config/marketplace');
 const notificationService = require('./notificationService');
+const storeService = require('./storeService');
 const {
   NotFoundError,
   ForbiddenError,
@@ -24,6 +25,7 @@ const ORDER_INCLUDE = [
   { model: OrderItem, as: 'items' },
   { model: PaymentTransaction, as: 'payments' },
   { model: User, as: 'customer', attributes: ['id', 'name', 'email'] },
+  { model: Store, attributes: ['id', 'name', 'slug', 'vendor_id'] },
 ];
 
 const VALID_TRANSITIONS = {
@@ -262,7 +264,7 @@ const buildListWhere = ({ user, filters, vendorStoreId }) => {
   const where = {};
   if (user.role === 'customer') {
     where.customer_id = user.id;
-  } else if (user.role === 'vendor' || user.role === 'staff') {
+  } else if (user.role === 'vendor' || user.role === 'staff' || user.role === 'superadmin') {
     if (filters.storeId) {
       where.store_id = filters.storeId;
     } else {
@@ -289,8 +291,10 @@ const list = async ({ user, filters }) => {
   const limit = filters.limit ?? 10;
   const offset = (page - 1) * limit;
   let vendorStoreId = null;
-  if ((user.role === 'vendor' || user.role === 'staff') && !user.storeId && !filters.storeId) {
-    const store = await Store.findOne({ where: { vendor_id: user.id } });
+  if ((user.role === 'vendor' || user.role === 'staff' || user.role === 'superadmin') && !user.storeId && !filters.storeId) {
+    const store = user.role === 'superadmin'
+      ? await storeService.findMine(user.id, user.role)
+      : await Store.findOne({ where: { vendor_id: user.id } });
     vendorStoreId = store?.id || null;
   }
 
@@ -318,8 +322,11 @@ const assertCanAccessOrder = async (orderId, user) => {
   if (user.role === 'customer' && order.customer_id !== user.id) {
     throw new ForbiddenError('No puedes ver una orden de otro cliente');
   }
-  if (user.role === 'vendor' || user.role === 'staff') {
+  if (user.role === 'vendor' || user.role === 'staff' || user.role === 'superadmin') {
     const store = await Store.findByPk(order.store_id);
+    if (user.role === 'superadmin' && storeService.isOfficialStore(store)) {
+      return order;
+    }
     if (!store || store.vendor_id !== user.id) {
       throw new ForbiddenError('La orden no pertenece a tu tienda');
     }

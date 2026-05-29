@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function Footer() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <footer className="bg-white dark:bg-charcoal-950 text-charcoal-800 dark:text-zinc-400 mt-auto border-t border-charcoal-100 dark:border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -25,8 +28,17 @@ export default function Footer() {
           <div>
             <p className="text-xs uppercase tracking-widest text-charcoal-700 dark:text-zinc-400 mb-4 font-semibold">Cuenta</p>
             <div className="flex flex-col gap-2.5">
-              <Link to="/register" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Registrarse</Link>
-              <Link to="/login" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Ingresar</Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/orders" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Mis ordenes</Link>
+                  <Link to="/cart" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Carrito</Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/register" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Registrarse</Link>
+                  <Link to="/login" className="text-sm hover:text-charcoal-950 dark:hover:text-white transition-colors duration-200">Ingresar</Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -64,12 +64,17 @@ const createPaymentConfirmedNotification = async ({ order, payment }) => {
 
   const store = await Store.findOne({ where: { id: order.store_id } });
   if (store) {
+    const paymentLabel = payment.method === 'crypto_eth'
+      ? `${payment.amount_crypto} ETH`
+      : payment.method === 'transfer'
+        ? 'transferencia bancaria'
+        : payment.method;
     await Notification.create({
       user_id: store.vendor_id,
       store_id: store.id,
       type: 'payment_received',
       title: 'Nuevo pago recibido',
-      message: `Recibiste un pago de Q${payment.amount_fiat} (${payment.amount_crypto} ETH) para el pedido #${shortId}.`,
+      message: `Recibiste un pago de Q${payment.amount_fiat} (${paymentLabel}) para el pedido #${shortId}.`,
       metadata: { orderId: order.id, paymentId: payment.id, amountGtq: payment.amount_fiat, amountEth: payment.amount_crypto },
     });
   }

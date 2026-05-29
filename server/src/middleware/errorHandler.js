@@ -49,6 +49,31 @@ const errorHandler = (err, req, res, _next) => {
     });
   }
 
+  if (err instanceof SyntaxError && err.status === 400 && err.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_JSON',
+        message: 'La solicitud enviada no tiene un formato JSON valido.',
+      },
+    });
+  }
+
+  if (
+    err.name === 'SequelizeConnectionError' ||
+    err.name === 'SequelizeHostNotFoundError' ||
+    err.name === 'SequelizeConnectionRefusedError'
+  ) {
+    logger.error(`[${correlationId}] Error de conexion a base de datos: ${err.message}`, { stack: err.stack });
+    return res.status(503).json({
+      success: false,
+      error: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'No se pudo conectar con Supabase. Revisa internet, DNS o usa el pooler IPv4 de Supabase.',
+      },
+    });
+  }
+
   logger.error(`[${correlationId}] Error no controlado: ${err.message}`, { stack: err.stack });
 
   return res.status(500).json({

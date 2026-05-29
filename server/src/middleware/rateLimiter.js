@@ -3,7 +3,8 @@ const AppError = require('../utils/AppError');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: process.env.NODE_ENV === 'production' ? 5 : 20,
+  skipSuccessfulRequests: true,
   keyGenerator: (req) => {
     const email = req.body && req.body.email ? req.body.email.toLowerCase() : 'unknown';
     return `${req.ip}:${email}`;

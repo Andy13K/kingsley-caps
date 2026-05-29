@@ -70,6 +70,27 @@ export default function CryptoPayment({ order, total }) {
   const [expired, setExpired] = useState(false);
   const [txHash, setTxHash] = useState(null);
 
+  const verifySentPayment = async (hash) => {
+    if (!paymentData?.paymentId || !hash) return;
+    setVerifying(true);
+    try {
+      const { data } = await api.post('/payments/crypto/verify', {
+        paymentId: paymentData.paymentId,
+        txHash: hash,
+      });
+      toast.success('Pago confirmado en la blockchain.');
+      clearCart();
+      navigate('/order-confirmation', {
+        state: { order: data.data.order ?? { ...order, status: data.data.status, txHash: hash } },
+        replace: true,
+      });
+    } catch (err) {
+      toast.error(err.message || 'La transaccion fue enviada, pero aun no se pudo confirmar. Reintenta la verificacion en unos minutos.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const initPayment = useCallback(async () => {
     if (!order?.id) return;
     setInitiating(true);
@@ -97,23 +118,7 @@ export default function CryptoPayment({ order, total }) {
       const walletTo = paymentData.walletAddress ?? paymentData.walletTo;
       const hash = await sendTransaction({ to: walletTo, amountEth: paymentData.amountEth });
       setTxHash(hash);
-      setVerifying(true);
-      try {
-        const { data } = await api.post('/payments/crypto/verify', {
-          paymentId: paymentData.paymentId,
-          txHash: hash,
-        });
-        toast.success('Pago confirmado en la blockchain.');
-        clearCart();
-        navigate('/order-confirmation', {
-          state: { order: data.data.order ?? { ...order, status: data.data.status, txHash: hash } },
-          replace: true,
-        });
-      } catch (err) {
-        toast.error(err.message || 'La transaccion fue enviada, pero aun no se pudo confirmar.');
-      } finally {
-        setVerifying(false);
-      }
+      await verifySentPayment(hash);
     } catch (err) {
       const code = err.message;
       if (['ERR_C04', 'ERR_C05'].includes(code)) setMmError(code);
@@ -248,9 +253,14 @@ export default function CryptoPayment({ order, total }) {
       )}
 
       {txHash && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4">
-          <p className="text-emerald-800 dark:text-emerald-400 text-sm font-bold mb-1">Transaccion enviada a la blockchain</p>
-          <p className="font-mono text-xs text-emerald-700 dark:text-emerald-500 break-all">{txHash}</p>
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-3">
+          <div>
+            <p className="text-emerald-800 dark:text-emerald-400 text-sm font-bold mb-1">Transaccion enviada a la blockchain</p>
+            <p className="font-mono text-xs text-emerald-700 dark:text-emerald-500 break-all">{txHash}</p>
+          </div>
+          <Button size="sm" variant="secondary" loading={verifying} onClick={() => verifySentPayment(txHash)}>
+            Verificar pago de nuevo
+          </Button>
         </div>
       )}
     </div>

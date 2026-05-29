@@ -14,16 +14,16 @@ router.get('/slug/:slug', storeController.getPublicBySlug);
 
 router.use(authenticate);
 
-router.post('/', authorize('vendor'), validate(createStoreSchema), storeController.create);
-router.get('/my', authorize('vendor', 'staff'), storeController.getMine);
-router.put('/my', authorize('vendor'), validate(updateStoreSchema), storeController.updateMine);
-router.put('/:id', authorize('vendor'), validate(updateStoreSchema), storeController.update);
+router.post('/', authorize('vendor', 'superadmin'), validate(createStoreSchema), storeController.create);
+router.get('/my', authorize('vendor', 'staff', 'superadmin'), storeController.getMine);
+router.put('/my', authorize('vendor', 'superadmin'), validate(updateStoreSchema), storeController.updateMine);
+router.put('/:id', authorize('vendor', 'superadmin'), validate(updateStoreSchema), storeController.update);
 router.put(
   '/:id/crypto-config',
-  authorize('vendor'),
+  authorize('vendor', 'superadmin'),
   validate(cryptoConfigSchema),
   storeController.updateCryptoConfig
 );
-router.put('/:id/publish', authorize('vendor'), storeController.publish);
+router.put('/:id/publish', authorize('vendor', 'superadmin'), storeController.publish);
 
 module.exports = router;

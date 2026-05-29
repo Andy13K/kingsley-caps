@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Kingsley Caps — Defensa Final 2026</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<canvas id="canvas-bg"></canvas>
+<div id="progress-bar"></div>
+
+<!-- TOOLTIP GLOBAL -->
+<div id="tooltip">
+  <button class="tt-close" id="tt-close">&#x2715;</button>
+  <div class="tt-head">
+    <span class="tt-name" id="tt-name"></span>
+    <span class="tt-type" id="tt-type"></span>
+  </div>
+  <div class="tt-body">
+    <div><div class="tt-sl">Que es</div><div class="tt-st" id="tt-what"></div></div>
+    <div><div class="tt-sl">Para que lo usamos</div><div class="tt-st" id="tt-use"></div></div>
+    <div><div class="tt-sl">Que hace en el proyecto</div><div class="tt-st" id="tt-does"></div></div>
+  </div>
+</div>
+
+<div id="slides-wrapper">
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 0 — COVER
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-0">
+  <div class="cover-left">
+    <div class="cover-logo">
+      <img src="../client/public/assets/kingsley/brand/logo.jpg" alt="Kingsley Caps"
+           onerror="this.outerHTML='<div style=\'width:4.5rem;height:4.5rem;border-radius:.75rem;border:1.5px solid rgba(216,173,91,.4);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:1.2rem;font-weight:900;color:var(--gold)\'>KC</div>'"/>
+      <div>
+        <div class="cover-logo-name">Kingsley <span>Caps</span></div>
+        <div class="cover-logo-sub">Defensa Final · UMG Puerto Barrios · Ciclo 9 · 2026</div>
+      </div>
+    </div>
+
+    <h1 class="cover-h">
+      <span id="scramble-kc">KINGSLEY</span>
+      <span class="line-gold">CAPS</span>
+      <span class="line-dim">Defensa Técnica y Ejecutiva</span>
+    </h1>
+
+    <p class="cover-sub">
+      Plataforma <span class="term" data-term="multitenant">e-commerce multi-tenant</span>
+      para el mercado guatemalteco con pagos en
+      <span class="term" data-term="ethereum">Ethereum</span> via
+      <span class="term" data-term="metamask">MetaMask</span> —
+      sin intermediarios, verificación <span class="term" data-term="ethers">on-chain</span> automática.
+    </p>
+
+    <div class="cover-pills">
+      <span class="cover-pill term" data-term="react">React 18</span>
+      <span class="cover-pill term" data-term="nodejs">Node.js 20</span>
+      <span class="cover-pill term" data-term="fastapi">FastAPI Python</span>
+      <span class="cover-pill term" data-term="postgresql">PostgreSQL 16</span>
+      <span class="cover-pill term" data-term="docker">Docker · 7 containers</span>
+    </div>
+  </div>
+
+  <div class="cover-right">
+    <div class="cov-stat"><div class="cov-num"><span>81</span>%</div><div class="cov-lbl">Sistema implementado</div></div>
+    <div class="cov-div"></div>
+    <div class="cov-stat"><div class="cov-num"><span>20</span>/21</div><div class="cov-lbl">Requisitos MUST</div></div>
+    <div class="cov-div"></div>
+    <div class="cov-stat"><div class="cov-num"><span>14</span></div><div class="cov-lbl">Tablas en BD</div></div>
+    <div class="cov-div"></div>
+    <div class="cov-stat"><div class="cov-num"><span>7</span></div><div class="cov-lbl">Containers Docker</div></div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 1 — PROBLEMA / SOLUCIÓN
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">01 · Contexto</div>
+    <h2 class="slide-title">El <span class="g">problema</span> que resolvemos</h2>
+  </div>
+
+  <div class="slide-body">
+    <div class="row stagger" style="width:100%;align-items:stretch;">
+      <div class="col f1">
+        <div class="card" style="flex:0 0 auto;">
+          <div class="card-label">Mercado guatemalteco</div>
+          <p style="font-size:.92rem;color:var(--text2);line-height:1.7;margin-top:.4rem;">
+            <strong style="color:var(--text);">70% de informalidad laboral.</strong>
+            Emprendedores sin acceso a terminales Visa ni aprobación bancaria.
+            Shopify cuesta $29–$299/mes y las pasarelas cobran 2–5% por venta.
+          </p>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="card-label">Nuestra respuesta</div>
+          <div class="flow-list" style="margin-top:.4rem;">
+            <div class="flow-item">
+              <div class="flow-n">01</div>
+              <div class="flow-c">
+                <div class="flow-t">Pagos cripto sin intermediario</div>
+                <div class="flow-d"><span class="term" data-term="ethereum">ETH</span> va directo al wallet del vendedor. ~$0.10 de gas vs 3% de pasarela tradicional.</div>
+              </div><div class="flow-tag">ETH</div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-n">02</div>
+              <div class="flow-c">
+                <div class="flow-t">SaaS <span class="term" data-term="multitenant">multi-tenant</span></div>
+                <div class="flow-d">N tiendas en una infraestructura. Datos aislados por <span class="term" data-term="jwt">store_id del JWT</span>.</div>
+              </div><div class="flow-tag">SaaS</div>
+            </div>
+            <div class="flow-item">
+              <div class="flow-n">03</div>
+              <div class="flow-c">
+                <div class="flow-t">IA para el vendedor pequeño</div>
+                <div class="flow-d">Predicción de demanda y precios via motor <span class="term" data-term="fastapi">FastAPI</span> propio.</div>
+              </div><div class="flow-tag">AI</div>
+            </div>
+            <div class="flow-item" style="border:none;">
+              <div class="flow-n">04</div>
+              <div class="flow-c">
+                <div class="flow-t">Verificación on-chain</div>
+                <div class="flow-d">No confiamos en el cliente — verificamos la TX en blockchain con <span class="term" data-term="ethers">ethers.js</span>.</div>
+              </div><div class="flow-tag">Blockchain</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="f1">
+        <div class="card" style="height:100%;">
+          <div class="card-label">Comparativa directa</div>
+          <table style="width:100%;border-collapse:collapse;font-size:.83rem;margin-top:.6rem;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:.5rem .6rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--bsoft);">Aspecto</th>
+                <th style="padding:.5rem .6rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--bsoft);text-align:center;">Shopify</th>
+                <th style="padding:.5rem .6rem;color:var(--gold);font-weight:700;border-bottom:1px solid var(--bsoft);text-align:center;">Kingsley Caps</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--bsoft);">
+                <td style="padding:.5rem .6rem;color:var(--text2);">Costo mensual</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">$29–$299</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">Q99–Q599</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--bsoft);">
+                <td style="padding:.5rem .6rem;color:var(--text2);">Comisión por venta</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">2–3%</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">~0.1% gas</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--bsoft);">
+                <td style="padding:.5rem .6rem;color:var(--text2);">Requiere cuenta bancaria</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">Sí</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">No</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--bsoft);">
+                <td style="padding:.5rem .6rem;color:var(--text2);">IA incluida</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">No</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">Sí</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--bsoft);">
+                <td style="padding:.5rem .6rem;color:var(--text2);">Liquidación del pago</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">2–5 días</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">15–30 seg</td>
+              </tr>
+              <tr>
+                <td style="padding:.5rem .6rem;color:var(--text2);">Multi-tienda</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--text2);">Plan adicional</td>
+                <td style="padding:.5rem .6rem;text-align:center;color:var(--gold);font-weight:600;">Nativo</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">En Guatemala, la mayoría de emprendedores no pueden acceder a terminales de pago convencionales. <strong>Kingsley Caps les da acceso directo a pagos globales con solo una wallet de Ethereum</strong>, reduciendo el costo de cada venta de un 3% a centavos de dólar.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 2 — STACK TECNOLÓGICO
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">02 · Tecnología</div>
+    <h2 class="slide-title">Stack <span class="g">tecnológico</span> completo</h2>
+  </div>
+
+  <div class="slide-body top">
+    <div style="width:100%;display:flex;flex-direction:column;gap:1rem;">
+
+      <div style="display:flex;flex-direction:column;gap:.45rem;">
+        <p class="desc">El sistema está compuesto por <strong style="color:var(--text);">7 servicios containerizados</strong> con <span class="term" data-term="docker">Docker Compose</span>, cada uno con health checks y restart automático. Un solo comando — <code style="font-family:var(--mono);color:var(--gold);font-size:.9rem;">docker-compose up -d</code> — levanta toda la plataforma en segundos.</p>
+        <p class="desc" style="font-size:.95rem;">El backend está <strong style="color:var(--text);">separado en dos microservicios independientes</strong>: Auth Service en el puerto 3001 (solo autenticación y JWT) y el Backend principal en el 3000 (lógica de negocio, pedidos, pagos). Este diseño permite escalar, mantener y proteger cada pieza de forma aislada.</p>
+      </div>
+
+      <div class="tech-grid stagger">
+        <div class="tech-item">
+          <div class="tech-ico">Re</div>
+          <div class="tech-n"><span class="term" data-term="react">React 18 + Vite</span></div>
+          <div class="tech-d">SPA con Tailwind CSS, Zustand para estado global, React Router 6 y lazy loading por rutas.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">No</div>
+          <div class="tech-n"><span class="term" data-term="nodejs">Node.js 20 + Express</span></div>
+          <div class="tech-d">API REST en puerto 3000 + Auth Service en 3001. Clean Architecture en ambos servicios.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Py</div>
+          <div class="tech-n"><span class="term" data-term="fastapi">FastAPI Python 3.11</span></div>
+          <div class="tech-d">Motor IA en puerto 8000. Predicción de demanda + sugerencia de precios. Suite pytest incluida.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Pg</div>
+          <div class="tech-n"><span class="term" data-term="postgresql">PostgreSQL 16</span></div>
+          <div class="tech-d">14 tablas relacionales. <span class="term" data-term="acid">ACID</span> para pagos atómicos. <span class="term" data-term="uuid">UUIDs</span> en todas las PKs. <span class="term" data-term="sequelize">Sequelize ORM</span>.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Rd</div>
+          <div class="tech-n"><span class="term" data-term="redis">Redis 7</span></div>
+          <div class="tech-d">Cache de sesiones, <span class="term" data-term="rate-limit">rate limiting</span> distribuido compartido entre instancias, blacklist de tokens.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Ng</div>
+          <div class="tech-n"><span class="term" data-term="nginx">Nginx Alpine</span></div>
+          <div class="tech-d">Único punto de entrada en el puerto 80. Enruta /api/auth → 3001, /api/* → 3000, /api/ai/* → 8000.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Et</div>
+          <div class="tech-n"><span class="term" data-term="ethers">ethers.js 6.9</span></div>
+          <div class="tech-d">Integración con <span class="term" data-term="metamask">MetaMask</span> en frontend y verificación on-chain en backend via <span class="term" data-term="rpc">RPC Sepolia</span>.</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-ico">Dk</div>
+          <div class="tech-n"><span class="term" data-term="docker">Docker Compose</span></div>
+          <div class="tech-d">Red bridge interna aislada, volúmenes persistentes para BD, variables de entorno por servicio.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El backend está dividido en <strong>dos servicios separados</strong>: uno para autenticación (puerto 3001) y otro para la lógica de negocio (puerto 3000). Esto sigue el principio de separación de responsabilidades y permite escalar cada servicio independientemente sin afectar al otro.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 3 — ARQUITECTURA
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">03 · Arquitectura</div>
+    <h2 class="slide-title"><span class="term" data-term="clean-architecture">Clean Architecture</span> + <span class="term" data-term="multitenant">Multi-Tenant</span></h2>
+  </div>
+
+  <div class="slide-body">
+    <div class="row stagger" style="width:100%;align-items:stretch;gap:1.5rem;">
+
+      <div class="f12" style="display:flex;flex-direction:column;justify-content:center;gap:.7rem;">
+        <div class="label-sm" style="margin-bottom:.1rem;">Infraestructura Docker — flujo de petición</div>
+
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:100%;">
+          <div style="display:flex;justify-content:center;width:100%;">
+            <div class="arch-box" style="width:90%;text-align:center;">BROWSER — React SPA</div>
+          </div>
+          <div class="arch-line"></div>
+          <div style="display:flex;justify-content:center;width:100%;">
+            <div class="arch-box gold term" data-term="nginx" style="width:90%;text-align:center;">NGINX :80 — Reverse Proxy + Rate Limit</div>
+          </div>
+          <svg width="80%" height="28" viewBox="0 0 400 28" fill="none" style="display:block;margin:0 auto;">
+            <line x1="67" y1="0" x2="67" y2="28" stroke="rgba(216,173,91,0.2)" stroke-width="1"/>
+            <line x1="200" y1="0" x2="200" y2="28" stroke="rgba(216,173,91,0.2)" stroke-width="1"/>
+            <line x1="333" y1="0" x2="333" y2="28" stroke="rgba(216,173,91,0.2)" stroke-width="1"/>
+            <line x1="67" y1="0" x2="333" y2="0" stroke="rgba(216,173,91,0.15)" stroke-width="1"/>
+          </svg>
+          <div style="display:flex;gap:.5rem;width:80%;margin:0 auto;">
+            <div class="arch-box blue term" data-term="jwt" style="flex:1;font-size:.65rem;text-align:center;">/api/auth/*<br><span style="color:var(--blue-l);">Auth :3001</span></div>
+            <div class="arch-box gold term" data-term="express" style="flex:1.6;font-size:.65rem;text-align:center;">/api/*<br><span style="color:var(--gold);">Backend :3000</span></div>
+            <div class="arch-box term" data-term="fastapi" style="flex:1;font-size:.65rem;text-align:center;">/api/ai/*<br>AI :8000</div>
+          </div>
+          <svg width="60%" height="20" viewBox="0 0 360 20" fill="none" style="display:block;margin:0 auto;">
+            <line x1="90" y1="0" x2="90" y2="20" stroke="rgba(216,173,91,0.2)" stroke-width="1"/>
+            <line x1="270" y1="0" x2="270" y2="20" stroke="rgba(216,173,91,0.2)" stroke-width="1"/>
+            <line x1="90" y1="0" x2="270" y2="0" stroke="rgba(216,173,91,0.1)" stroke-width="1"/>
+          </svg>
+          <div style="display:flex;gap:.5rem;width:60%;margin:0 auto;">
+            <div class="arch-box gold term" data-term="postgresql" style="flex:1.5;font-size:.65rem;text-align:center;">PostgreSQL 16<br>:5432 interno</div>
+            <div class="arch-box term" data-term="redis" style="flex:1;font-size:.65rem;text-align:center;">Redis 7<br>:6379 interno</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="f1 col" style="justify-content:center;">
+        <div class="label-sm" style="margin-bottom:.4rem;">Patrón de capas — Clean Architecture</div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;">
+          <div style="background:rgba(216,173,91,.04);border:1px solid rgba(216,173,91,.15);border-radius:.5rem;padding:.65rem .9rem;">
+            <div style="font-size:.65rem;font-family:var(--mono);color:var(--gold);margin-bottom:.2rem;">L4 — PRESENTATION</div>
+            <div style="font-size:.8rem;color:var(--text2);">React pages, componentes, hooks, contexts</div>
+          </div>
+          <div style="background:rgba(37,99,235,.04);border:1px solid rgba(37,99,235,.2);border-radius:.5rem;padding:.65rem .9rem;">
+            <div style="font-size:.65rem;font-family:var(--mono);color:var(--blue-l);margin-bottom:.2rem;">L3 — APPLICATION</div>
+            <div style="font-size:.8rem;color:var(--text2);">Controllers — solo orquestación, sin lógica de negocio</div>
+          </div>
+          <div style="background:rgba(216,173,91,.08);border:1px solid rgba(216,173,91,.3);border-radius:.5rem;padding:.65rem .9rem;">
+            <div style="font-size:.65rem;font-family:var(--mono);color:var(--gold);margin-bottom:.2rem;">L2 — DOMAIN SERVICES ★</div>
+            <div style="font-size:.8rem;color:var(--text);">TODA la lógica de negocio aquí: authService, paymentService, blockchainService...</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--bsoft);border-radius:.5rem;padding:.65rem .9rem;">
+            <div style="font-size:.65rem;font-family:var(--mono);color:var(--muted);margin-bottom:.2rem;">L1 — INFRASTRUCTURE</div>
+            <div style="font-size:.8rem;color:var(--text2);"><span class="term" data-term="sequelize">Sequelize</span> Models, <span class="term" data-term="postgresql">PostgreSQL</span>, <span class="term" data-term="redis">Redis</span>, APIs externas</div>
+          </div>
+        </div>
+        <div class="card" style="padding:.8rem .95rem;margin-top:.4rem;">
+          <div class="card-label"><span class="term" data-term="multitenant">Multi-tenancy</span></div>
+          <div style="font-size:.78rem;color:var(--text2);margin-top:.28rem;line-height:1.6;">
+            <code style="color:var(--gold);font-size:.7rem;">store_id</code> en cada tabla del dominio.
+            Extraído del <span class="term" data-term="jwt">JWT</span> firmado — nunca del body.
+            Imposible cruzar datos entre tiendas.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">La decisión más importante del diseño fue poner <strong>toda la lógica de negocio en la capa de Services</strong>. Los Controllers solo orquestan — esto hace el código completamente testeable y permite cambiar el framework sin reescribir la lógica.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 4 — ESTADO DEL PROYECTO
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">04 · Estado del proyecto</div>
+    <h2 class="slide-title"><span class="g" data-count="81" data-suffix="%">81%</span> implementado — criterio era <span class="d">≥ 70%</span></h2>
+  </div>
+
+  <div class="slide-body top">
+    <div style="width:100%;display:flex;flex-direction:column;gap:.9rem;">
+
+      <div class="metrics-row stagger">
+        <div class="metric">
+          <div class="metric-num"><span data-count="20">20</span><span class="u">/21</span></div>
+          <div class="metric-lbl">Requisitos MUST completados</div>
+          <div class="metric-bar"><div class="metric-fill" data-width="95"></div></div>
+        </div>
+        <div class="metric">
+          <div class="metric-num"><span data-count="7">7</span></div>
+          <div class="metric-lbl">Containers <span class="term" data-term="docker">Docker</span></div>
+          <div class="metric-bar"><div class="metric-fill" data-width="100"></div></div>
+        </div>
+        <div class="metric">
+          <div class="metric-num"><span data-count="14">14</span></div>
+          <div class="metric-lbl">Tablas <span class="term" data-term="postgresql">PostgreSQL</span></div>
+          <div class="metric-bar"><div class="metric-fill" data-width="100"></div></div>
+        </div>
+        <div class="metric">
+          <div class="metric-num"><span data-count="11">11</span></div>
+          <div class="metric-lbl">Grupos de rutas API</div>
+          <div class="metric-bar"><div class="metric-fill" data-width="100"></div></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="label-sm" style="margin-bottom:.55rem;">Requisitos funcionales MUST implementados</div>
+        <div class="rf-grid stagger">
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Registro de usuarios</div><div class="rf-id">RF-001</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Auth <span class="term" data-term="jwt">JWT</span> doble token</div><div class="rf-id">RF-002</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Crear tienda (vendor)</div><div class="rf-id">RF-003</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Activar pagos cripto</div><div class="rf-id">RF-004</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Solicitud de pago ETH</div><div class="rf-id">RF-005</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Verificación on-chain</div><div class="rf-id">RF-006</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Preparación de pedido</div><div class="rf-id">RF-007</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Guía de envío manual</div><div class="rf-id">RF-008</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">CRUD de productos</div><div class="rf-id">RF-009</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Gestión de inventario</div><div class="rf-id">RF-010</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Carrito persistente</div><div class="rf-id">RF-011</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Confirmación de pedido</div><div class="rf-id">RF-012</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Conversión GTQ→ETH</div><div class="rf-id">RF-014</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Monitoreo pago cripto</div><div class="rf-id">RF-016</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Estados del pedido</div><div class="rf-id">RF-017</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Consulta de pedido</div><div class="rf-id">RF-018</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Notificaciones al cliente</div><div class="rf-id">RF-019</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Panel del vendedor</div><div class="rf-id">RF-020</div></div>
+          <div class="rf-item"><div class="rf-dot ok"></div><div class="rf-label">Historial de pedidos</div><div class="rf-id">RF-027</div></div>
+          <div class="rf-item"><div class="rf-dot warn"></div><div class="rf-label">Pago convencional (parcial)</div><div class="rf-id">RF-013</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El sistema supera el criterio de aprobación por <strong>25 puntos porcentuales</strong>. El único MUST parcial es RF-013 (pago con tarjeta) — la arquitectura ya existe, solo falta conectar Stripe con credenciales de producción.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 5 — PAGOS CRIPTO
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">05 · Feature estrella</div>
+    <h2 class="slide-title">Pagos <span class="g">Cripto</span> — sin intermediarios</h2>
+  </div>
+
+  <div class="slide-body top">
+    <div style="width:100%;display:flex;flex-direction:column;gap:.9rem;">
+
+      <div class="pf-wrap stagger">
+        <div class="pf-step"><div class="pf-num">01</div><div class="pf-title">Checkout</div><div class="pf-sub">Cliente elige pagar con ETH</div></div>
+        <div class="pf-arr">→</div>
+        <div class="pf-step"><div class="pf-num">02</div><div class="pf-title">Rate Lock</div><div class="pf-sub">GTQ→ETH en tiempo real. Tasa fija 10 min</div></div>
+        <div class="pf-arr">→</div>
+        <div class="pf-step"><div class="pf-num">03</div><div class="pf-title">Nonce + QR</div><div class="pf-sub"><span class="term" data-term="uuid">UUID</span> anti-replay. QR con wallet + monto ETH</div></div>
+        <div class="pf-arr">→</div>
+        <div class="pf-step"><div class="pf-num">04</div><div class="pf-title"><span class="term" data-term="metamask">MetaMask</span></div><div class="pf-sub">Cliente firma y envía TX a la wallet del vendedor</div></div>
+        <div class="pf-arr">→</div>
+        <div class="pf-step"><div class="pf-num">05</div><div class="pf-title"><span class="term" data-term="ethers">On-chain</span></div><div class="pf-sub">ethers.js verifica wallet + monto en blockchain</div></div>
+        <div class="pf-arr">→</div>
+        <div class="pf-step done"><div class="pf-num">06</div><div class="pf-title" style="color:var(--gold);">Confirmado</div><div class="pf-sub">3 bloques → orden PAID → stock descontado</div></div>
+      </div>
+
+      <div>
+        <div class="label-sm" style="margin-bottom:.5rem;"><span class="term" data-term="ethereum">Ethereum Sepolia</span> — bloques confirmados en tiempo real</div>
+        <div class="chain-wrap">
+          <div class="chain-track">
+            <div class="chain-block"><span class="n">#8,234,891</span> · TX: <span class="h">0x4a9f…c3e1</span> · <span class="c">3 conf ✓ PAGADO</span></div>
+            <div class="chain-block"><span class="n">#8,234,892</span> · TX: <span class="h">0x7b2d…91fa</span> · <span class="c">2 conf</span></div>
+            <div class="chain-block"><span class="n">#8,234,893</span> · TX: <span class="h">0xf8c1…44ab</span> · 1 conf</div>
+            <div class="chain-block"><span class="n">#8,234,894</span> · TX: <span class="h">0x2e7a…88dc</span> · Pending...</div>
+            <div class="chain-block"><span class="n">#8,234,891</span> · TX: <span class="h">0x4a9f…c3e1</span> · <span class="c">3 conf ✓ PAGADO</span></div>
+            <div class="chain-block"><span class="n">#8,234,892</span> · TX: <span class="h">0x7b2d…91fa</span> · <span class="c">2 conf</span></div>
+            <div class="chain-block"><span class="n">#8,234,893</span> · TX: <span class="h">0xf8c1…44ab</span> · 1 conf</div>
+            <div class="chain-block"><span class="n">#8,234,894</span> · TX: <span class="h">0x2e7a…88dc</span> · Pending...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row stagger" style="gap:.75rem;">
+        <div class="card f1" style="padding:.85rem 1rem;">
+          <div class="card-label">Verificación <span class="term" data-term="ethers">on-chain</span></div>
+          <p style="font-size:.8rem;color:var(--text2);line-height:1.6;margin-top:.3rem;">El backend consulta directamente la <span class="term" data-term="rpc">RPC de Ethereum</span>. Verifica: wallet destino = wallet del vendedor, monto recibido ≥ monto solicitado, mínimo 3 bloques de confirmación. <strong style="color:var(--text);">Imposible falsificar.</strong></p>
+        </div>
+        <div class="card f1" style="padding:.85rem 1rem;">
+          <div class="card-label">6 errores manejados</div>
+          <p style="font-size:.78rem;color:var(--text2);line-height:1.65;margin-top:.3rem;">ERR-C01: MetaMask no conectada · ERR-C02: Nonce reutilizado · ERR-C03: Fondos insuficientes · ERR-C04: Timeout 10 min · ERR-C05: TX revertida · ERR-C06: Discrepancia de monto → bloquea orden + notifica admin</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">Lo diferenciador es que <strong>el dinero nunca pasa por nuestra plataforma</strong> — va directo de la wallet del comprador a la del vendedor. Nosotros solo verificamos que ocurrió en la blockchain pública. Nadie nos puede acusar de retener fondos.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 6 — AUTENTICACIÓN
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">06 · Autenticación</div>
+    <h2 class="slide-title"><span class="term" data-term="jwt">JWT</span> doble token + <span class="term" data-term="bcrypt">bcrypt</span> — stateless y seguro</h2>
+  </div>
+
+  <div class="slide-body">
+    <div style="width:100%;display:flex;flex-direction:column;gap:1rem;">
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0;" class="stagger">
+        <div class="jwt-center">Login exitoso — se generan 2 tokens independientes</div>
+        <div class="jwt-fork"></div>
+        <div class="jwt-tokens">
+          <div class="jwt-token a">
+            <div class="jwt-t g">Access Token</div>
+            <div class="jwt-detail">Duración: <strong style="color:var(--text);">15 minutos</strong><br>Payload: userId · storeId · role<br>Firma: HMAC-SHA256<br>Storage: en memoria del cliente (nunca localStorage)</div>
+          </div>
+          <div class="jwt-token r">
+            <div class="jwt-t b">Refresh Token</div>
+            <div class="jwt-detail">Duración: <strong style="color:var(--text);">7 días</strong><br>Storage: <span class="term" data-term="bcrypt">HASH</span> en BD (nunca plaintext)<br>Rotación: nuevo par en cada renovación<br>Revocable individualmente o en masa</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row stagger" style="gap:1rem;">
+        <div class="f1">
+          <div class="code">
+<span class="cm">// Cada query siempre filtra por store del JWT</span>
+<span class="kw">const</span> payload = <span class="fn">jwt</span>.verify(token, JWT_SECRET);
+req.user = {
+  userId:  payload.userId,
+  storeId: payload.storeId, <span class="cm">// NUNCA del body</span>
+  role:    payload.role
+};
+          </div>
+        </div>
+        <div class="f1" style="display:flex;flex-direction:column;gap:.6rem;">
+          <div class="card" style="flex:1;padding:.8rem .95rem;">
+            <div class="card-label"><span class="term" data-term="rate-limit">Rate Limiting</span> Auth</div>
+            <p style="font-size:.8rem;color:var(--text2);margin-top:.25rem;">5 intentos / 15 min / IP + email. Bloqueo temporal de 15 minutos al superar el límite.</p>
+          </div>
+          <div class="card" style="flex:1;padding:.8rem .95rem;">
+            <div class="card-label"><span class="term" data-term="rbac">RBAC</span> — 4 roles</div>
+            <p style="font-size:.8rem;color:var(--text2);margin-top:.25rem;"><code style="color:var(--gold);">superadmin</code> · <code style="color:var(--gold);">vendor</code> · <code style="color:var(--gold);">staff</code> · <code style="color:var(--gold);">customer</code> — verificado en cada endpoint antes de ejecutar el controlador.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El sistema es <strong>stateless</strong> — el servidor no guarda sesiones en memoria. El <code style="color:var(--gold);">storeId</code> viaja dentro del JWT firmado, lo que garantiza que aunque un vendedor intercepte la petición de otro, no pueda ver sus datos.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 7 — SEGURIDAD STRIDE
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">07 · Seguridad</div>
+    <h2 class="slide-title">Modelo <span class="term" data-term="stride">STRIDE</span> — 6 amenazas, 6 controles</h2>
+  </div>
+
+  <div class="slide-body">
+    <div style="width:100%;display:flex;flex-direction:column;gap:.9rem;">
+      <div class="sec-grid stagger">
+        <div class="sec-card">
+          <div class="sec-tag">S — Spoofing</div>
+          <div class="sec-t">Suplantación de identidad</div>
+          <div class="sec-d"><span class="term" data-term="jwt">JWT</span> HMAC-SHA256 · <span class="term" data-term="bcrypt">bcrypt</span> salt=12 · Refresh tokens almacenados como HASH, nunca en texto plano.</div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-tag">T — Tampering</div>
+          <div class="sec-t">Manipulación de datos</div>
+          <div class="sec-d"><span class="term" data-term="joi">Joi</span> valida 100% de los endpoints · <span class="term" data-term="sequelize">Sequelize</span> usa queries parametrizadas — imposible SQL injection.</div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-tag">R — Repudiation</div>
+          <div class="sec-t">Repudio de acciones</div>
+          <div class="sec-d"><span class="term" data-term="winston">Winston</span> logs JSON con correlationId único por request · tabla <code style="color:var(--gold);">activity_log</code> con IP y user agent.</div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-tag">I — Information Disclosure</div>
+          <div class="sec-t">Fuga de información</div>
+          <div class="sec-d"><span class="term" data-term="helmet">Helmet.js</span>: HSTS · CSP · X-Frame-Options · <span class="term" data-term="cors">CORS</span> whitelist · aislamiento multi-tenant total.</div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-tag">D — Denial of Service</div>
+          <div class="sec-t">Denegación de servicio</div>
+          <div class="sec-d"><span class="term" data-term="rate-limit">Rate limiting</span> en Nginx + Express · health checks en todos los containers · restart automático <span class="term" data-term="docker">Docker</span>.</div>
+        </div>
+        <div class="sec-card">
+          <div class="sec-tag">E — Elevation of Privilege</div>
+          <div class="sec-t">Escalada de privilegios</div>
+          <div class="sec-d"><span class="term" data-term="rbac">RBAC</span> en middleware <code style="color:var(--gold);">authorize.js</code> · store_id solo desde <span class="term" data-term="jwt">JWT</span> firmado — nunca del request.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:.65rem;align-items:stretch;" class="stagger">
+        <div class="card f1" style="padding:.75rem 1rem;">
+          <div class="card-label">Controles preventivos aplicados</div>
+          <p style="font-size:.78rem;color:var(--text2);line-height:1.65;margin-top:.3rem;">
+            <span class="term" data-term="bcrypt">bcrypt</span> salt=12 · HSTS habilitado · <span class="term" data-term="cors">CORS</span> whitelist · Nonce anti-replay en pagos · <span class="term" data-term="uuid">UUIDs</span> no enumerables · CHECK stock ≥ 0 en BD · <span class="term" data-term="rbac">RBAC</span> 4 roles · <span class="term" data-term="joi">Joi</span> en cada endpoint
+          </p>
+        </div>
+        <div class="card f1" style="padding:.75rem 1rem;">
+          <div class="card-label">Controles detectivos y correctivos</div>
+          <p style="font-size:.78rem;color:var(--text2);line-height:1.65;margin-top:.3rem;">
+            <span class="term" data-term="winston">Winston</span> JSON logs · Tabla audit_log inmutable · Alerta ERR-C06 al admin en discrepancias · Revocación de tokens por sesión o global · Suspensión de cuentas desde panel SuperAdmin
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El modelo STRIDE no fue solo documentación — cada amenaza tiene su control implementado en código. Por ejemplo, el nonce único en pagos previene que alguien replaye una transacción antigua para "pagar" una orden nueva sin enviar ETH real.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 8 — MOTOR IA
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">08 · Inteligencia Artificial</div>
+    <h2 class="slide-title">Motor de <span class="g">IA</span> propio — <span class="term" data-term="fastapi">FastAPI</span> sin costos externos</h2>
+  </div>
+
+  <div class="slide-body">
+    <div style="width:100%;display:flex;flex-direction:column;gap:.9rem;">
+      <div class="row stagger" style="gap:1rem;align-items:stretch;">
+        <div class="algo-box f1">
+          <div class="algo-title">Predicción de Demanda — 7 días</div>
+          <div class="algo-row"><div class="algo-k">Entrada</div><div>30 días de historial de ventas por producto y variante</div></div>
+          <div class="algo-row"><div class="algo-k">Algoritmo</div><div>Promedio ponderado móvil — los días recientes tienen más peso que los lejanos</div></div>
+          <div class="algo-row"><div class="algo-k">Tendencia</div><div>Compara primera mitad vs segunda mitad del período para detectar subida/baja</div></div>
+          <div class="algo-row"><div class="algo-k">Confianza alta</div><div>≥ 30 días con datos de ventas disponibles</div></div>
+          <div class="algo-row"><div class="algo-k">Confianza media</div><div>7 – 29 días con datos</div></div>
+          <div class="algo-row" style="border:none;"><div class="algo-k">Fallback</div><div>Si el motor falla, el sistema responde sin predicción — <strong style="color:var(--text);">nunca se rompe el flujo</strong></div></div>
+        </div>
+        <div class="algo-box f1">
+          <div class="algo-title">Sugerencia de Precios — basada en mercado</div>
+          <div class="algo-row"><div class="algo-k">Entrada</div><div>Categoría del producto, tags y lista de comparables en el catálogo</div></div>
+          <div class="algo-row"><div class="algo-k">Algoritmo</div><div>Mediana de precios de comparables — más robusta que el promedio ante outliers</div></div>
+          <div class="algo-row"><div class="algo-k">Tag "featured"</div><div>Usa percentil P75 en lugar de mediana (precio premium)</div></div>
+          <div class="algo-row"><div class="algo-k">Tag "limited"</div><div>Agrega +10% sobre el precio calculado por escasez percibida</div></div>
+          <div class="algo-row"><div class="algo-k">Confianza 80%</div><div>Con 6 o más productos comparables encontrados</div></div>
+          <div class="algo-row" style="border:none;"><div class="algo-k">Sin dependencias</div><div>Algoritmos propios en Python stdlib — <strong style="color:var(--text);">costo $0 por consulta</strong></div></div>
+        </div>
+      </div>
+
+      <div class="code stagger">
+<span class="cm"># demand_analyzer.py — weighted moving average</span>
+<span class="kw">weights</span> = [i + <span class="str">1</span> <span class="kw">for</span> i <span class="kw">in</span> range(n)]  <span class="cm"># días recientes pesan más: [1,2,3,...,30]</span>
+<span class="fn">weighted_avg</span> = <span class="fn">sum</span>(sales[i] * weights[i] <span class="kw">for</span> i <span class="kw">in</span> range(n)) / <span class="fn">sum</span>(weights)
+trend = <span class="str">"up"</span> <span class="kw">if</span> second_half > first_half * <span class="str">1.1</span> <span class="kw">else</span> <span class="str">"down"</span> <span class="kw">if</span> second_half < first_half * <span class="str">0.9</span> <span class="kw">else</span> <span class="str">"flat"</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El motor de IA <strong>no depende de OpenAI ni de ningún servicio externo de pago</strong> — esto es clave. Los algoritmos son propios, escritos en Python puro, lo que significa costo cero por consulta y sin riesgo de que cambien los precios o la API externa.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 9 — BASE DE DATOS
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">09 · Persistencia</div>
+    <h2 class="slide-title"><span class="term" data-term="postgresql">PostgreSQL 16</span> — 14 tablas, <span class="term" data-term="acid">ACID</span>, <span class="term" data-term="uuid">UUIDs</span></h2>
+  </div>
+
+  <div class="slide-body">
+    <div class="row stagger" style="width:100%;gap:1.25rem;align-items:stretch;">
+
+      <div class="f12 col" style="gap:.6rem;">
+        <div class="label-sm">Esquema de datos completo</div>
+        <div class="db-grid">
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">user</div><div class="db-tag">roles · <span class="term" data-term="bcrypt">bcrypt</span></div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">refresh_token</div><div class="db-tag">solo HASH</div></div>
+          <div class="db-item"><div class="db-dot" style="background:var(--gold);"></div><div class="db-n">store</div><div class="db-tag"><span class="term" data-term="multitenant">multi-tenant</span></div></div>
+          <div class="db-item"><div class="db-dot" style="background:var(--gold);"></div><div class="db-n">product</div><div class="db-tag">store_id FK</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">product_variant</div><div class="db-tag"><span class="term" data-term="uuid">SKU único</span></div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">inventory_movement</div><div class="db-tag">historial</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">cart</div><div class="db-tag">persistente</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">cart_item</div><div class="db-tag">snapshot precio</div></div>
+          <div class="db-item"><div class="db-dot" style="background:var(--blue-l);"></div><div class="db-n">order</div><div class="db-tag">ciclo completo</div></div>
+          <div class="db-item"><div class="db-dot" style="background:var(--blue-l);"></div><div class="db-n">order_item</div><div class="db-tag">snapshot</div></div>
+          <div class="db-item"><div class="db-dot" style="background:var(--blue-l);"></div><div class="db-n">payment_transaction</div><div class="db-tag">tx_hash on-chain</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">notification</div><div class="db-tag">unread count</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">activity_log</div><div class="db-tag">audit trail</div></div>
+          <div class="db-item"><div class="db-dot"></div><div class="db-n">shipping</div><div class="db-tag">guía manual</div></div>
+        </div>
+      </div>
+
+      <div class="f1 col" style="gap:.65rem;justify-content:center;">
+        <div class="label-sm" style="margin-bottom:.1rem;">Decisiones críticas de diseño</div>
+        <div class="flow-list">
+          <div class="flow-item">
+            <div class="flow-n">1</div>
+            <div class="flow-c">
+              <div class="flow-t"><span class="term" data-term="postgresql">PostgreSQL</span> en lugar de MongoDB</div>
+              <div class="flow-d"><span class="term" data-term="acid">ACID</span>: el descuento de stock y la creación de orden son una transacción atómica. Si falla, todo hace rollback.</div>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-n">2</div>
+            <div class="flow-c">
+              <div class="flow-t"><span class="term" data-term="uuid">UUIDs</span> en lugar de auto-increment</div>
+              <div class="flow-d">No se pueden enumerar ni adivinar IDs ajenos. Con IDs secuenciales (1,2,3) es trivial probar todos los recursos.</div>
+            </div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-n">3</div>
+            <div class="flow-c">
+              <div class="flow-t">Snapshot de precio en order_item</div>
+              <div class="flow-d">El precio puede cambiar después. La orden siempre refleja exactamente lo que el cliente pagó en ese momento.</div>
+            </div>
+          </div>
+          <div class="flow-item" style="border:none;">
+            <div class="flow-n">4</div>
+            <div class="flow-c">
+              <div class="flow-t">CHECK stock ≥ 0 a nivel de BD</div>
+              <div class="flow-d">Restricción en <span class="term" data-term="postgresql">PostgreSQL</span> — imposible inventario negativo, ni con queries directas, ni con bugs de código.</div>
+            </div>
+          </div>
+        </div>
+        <div class="code" style="margin-top:.25rem;font-size:.72rem;">
+<span class="cm">-- Restricción crítica — nivel base de datos</span>
+<span class="kw">ALTER TABLE</span> product_variant
+<span class="fn">ADD CONSTRAINT</span> stock_non_negative
+<span class="kw">CHECK</span> (stock >= <span class="str">0</span>);
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El hecho de que el stock nunca pueda ser negativo <strong>no es solo una validación en código</strong> — está enforced a nivel de base de datos con un CHECK constraint. Aunque haya un bug en la aplicación o alguien inyecte una query, PostgreSQL lo rechaza.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 10 — GUÍA DEMO
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide">
+  <div class="slide-head">
+    <div class="slide-eyebrow">10 · Demo en vivo</div>
+    <h2 class="slide-title">Guía de <span class="g">demostración</span> — 6 bloques</h2>
+  </div>
+
+  <div class="slide-body top">
+    <div style="width:100%;display:flex;flex-direction:column;gap:.75rem;">
+      <div class="demo-grid stagger">
+        <div class="demo-block">
+          <div class="demo-num">Bloque 01 · 3 min</div>
+          <div class="demo-title">Registro y Autenticación</div>
+          <ul class="demo-steps">
+            <li>Crear cuenta de vendedor → estado pending_approval</li>
+            <li>Loguear como SuperAdmin → aprobar vendedor</li>
+            <li>Mostrar <span class="term" data-term="jwt">JWT</span> en DevTools: accessToken + refreshToken</li>
+            <li>Señalar el payload: userId, storeId, role</li>
+          </ul>
+        </div>
+        <div class="demo-block">
+          <div class="demo-num">Bloque 02 · 3 min</div>
+          <div class="demo-title">Tienda y Productos</div>
+          <ul class="demo-steps">
+            <li>Crear tienda → slug URL generado automáticamente</li>
+            <li>Agregar producto: Gorra Snapback + imagen</li>
+            <li>Variante: talla M, color Negro, <span class="term" data-term="uuid">SKU</span> único, stock 20</li>
+            <li>Activar tienda: draft → active (visible al público)</li>
+          </ul>
+        </div>
+        <div class="demo-block star">
+          <div class="demo-num">Bloque 03 · 7 min — Feature Estrella ★</div>
+          <div class="demo-title g">Pago Cripto con <span class="term" data-term="metamask">MetaMask</span></div>
+          <ul class="demo-steps">
+            <li>Config tienda → activar wallet <span class="term" data-term="ethereum">ETH Sepolia</span>: 0xAbCd…</li>
+            <li>Nueva ventana incógnito → cliente → Checkout ETH</li>
+            <li>Mostrar: tasa <span class="term" data-term="rpc">CoinGecko</span> en tiempo real, countdown 10 min, QR</li>
+            <li><span class="term" data-term="metamask">MetaMask</span> → conectar wallet → confirmar TX</li>
+            <li>Polling cada 30 seg → 3 bloques → orden PAID automático</li>
+          </ul>
+        </div>
+        <div class="demo-block">
+          <div class="demo-num">Bloque 04 · 4 min</div>
+          <div class="demo-title">Pedidos e Inventario</div>
+          <ul class="demo-steps">
+            <li>Panel vendedor → pedido PAID → cambiar a preparing</li>
+            <li>packed → ingresar número de guía → shipped</li>
+            <li>Inventario: stock baja de 20 a 19 automáticamente</li>
+            <li>Mostrar historial de <span class="term" data-term="acid">movimientos atómicos</span></li>
+          </ul>
+        </div>
+        <div class="demo-block">
+          <div class="demo-num">Bloque 05 · 4 min</div>
+          <div class="demo-title">IA en acción</div>
+          <ul class="demo-steps">
+            <li>Inventario → "Predicción de demanda" → gráfico 7 días</li>
+            <li>Mostrar tendencia (up/flat/down) y nivel de confianza</li>
+            <li>Productos → "Sugerir precio" → mediana + razonamiento</li>
+            <li>Dashboard: ingresos en GTQ y <span class="term" data-term="ethereum">ETH</span>, pedidos pendientes</li>
+          </ul>
+        </div>
+        <div class="demo-block">
+          <div class="demo-num">Setup rápido</div>
+          <div class="demo-title">Levantar el sistema completo</div>
+          <ul class="demo-steps">
+            <li><code style="color:var(--gold);font-family:var(--mono);font-size:.7rem;">docker-compose up -d</code></li>
+            <li><code style="color:var(--gold);font-family:var(--mono);font-size:.7rem;">docker-compose exec backend npm run db:seed</code></li>
+            <li>Frontend: <code style="color:var(--text2);font-family:var(--mono);font-size:.68rem;">http://localhost</code></li>
+            <li>pgAdmin: <code style="color:var(--text2);font-family:var(--mono);font-size:.68rem;">http://localhost:5050</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">El <strong>Bloque 03 es el más importante</strong> — hay que asegurarse de tener MetaMask instalado y la red Sepolia configurada antes de la presentación. El pago tarda ~15 segundos en confirmarse en testnet, lo cual es visualmente impactante.</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SLIDE 11 — Q&A + FINAL
+     ═══════════════════════════════════════════════════════ -->
+<section class="slide" id="slide-11">
+  <div class="slide-head">
+    <div class="slide-eyebrow">11 · Preguntas del evaluador</div>
+    <h2 class="slide-title">Respuestas <span class="g">clave</span> preparadas</h2>
+  </div>
+
+  <div class="slide-body top">
+    <div style="width:100%;display:flex;flex-direction:column;gap:1rem;">
+      <div class="qa-grid stagger">
+        <div class="qa-item">
+          <div class="qa-q">¿Cómo previenen que un vendedor vea datos de otro?</div>
+          <div class="qa-a">Triple capa: <span class="term" data-term="jwt">JWT</span> firmado contiene storeId, middleware <code style="color:var(--gold);">authenticate.js</code> lo extrae, y cada query incluye <code style="color:var(--gold);">WHERE store_id = req.user.storeId</code>. Aunque manipulen el HTTP, el storeId viene del token firmado.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">¿Qué pasa si el motor de IA falla?</div>
+          <div class="qa-a">Graceful degradation: <code style="color:var(--gold);">aiService.js</code> tiene try-catch con timeout 5-8s. Si no responde, retorna objeto vacío. El usuario no ve la predicción pero puede seguir comprando y vendiendo normalmente sin ninguna interrupción.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">¿Cómo garantizan que un pago ETH sea real y no falsificado?</div>
+          <div class="qa-a">Verificación <span class="term" data-term="ethers">on-chain</span> con <span class="term" data-term="rpc">ethers.js via RPC</span>: wallet destino = wallet del vendedor, monto ≥ solicitado, mínimo 3 bloques de confirmación. Es imposible falsificar sin controlar la blockchain pública de Ethereum.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">¿Por qué <span class="term" data-term="bcrypt">bcrypt</span> y no SHA-256?</div>
+          <div class="qa-a">SHA-256 es veloz por diseño (para integridad, no contraseñas). <span class="term" data-term="bcrypt">bcrypt</span> es intencionalmente lento, tiene salt aleatorio (anti rainbow-tables) y cost factor ajustable conforme crece el hardware. Salt=12 hace que cada intento tarde ~250ms — fuerza bruta inviable.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">¿Por qué <span class="term" data-term="postgresql">PostgreSQL</span> y no MongoDB?</div>
+          <div class="qa-a"><span class="term" data-term="acid">ACID</span> es crítico aquí: el descuento de stock y la creación de la orden son una transacción atómica. Si falla cualquier parte, todo hace rollback. La eventual consistency de MongoDB no es aceptable para operaciones financieras.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">¿Qué es el rate lock y por qué existe?</div>
+          <div class="qa-a">El <span class="term" data-term="ethereum">ETH</span> fluctúa constantemente. Al iniciar el pago, bloqueamos la tasa GTQ→ETH por 10 minutos. Si el cliente demora y el precio cambia, la solicitud expira y genera nueva tasa. Evita inconsistencias y arbitraje de precios.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:.6rem;border-top:1px solid var(--bsoft);">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <img src="../client/public/assets/kingsley/brand/logo.jpg" alt="KC"
+               style="width:3rem;height:3rem;border-radius:.5rem;border:1.5px solid rgba(216,173,91,.3);"
+               onerror="this.outerHTML='<div style=\'width:3rem;height:3rem;border-radius:.5rem;border:1.5px solid rgba(216,173,91,.4);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:900;color:var(--gold);font-size:.9rem\'>KC</div>'"/>
+          <div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--text);letter-spacing:-.02em;">Kingsley <span style="color:var(--gold);">Caps</span></div>
+            <div style="font-size:.62rem;color:var(--muted);font-family:var(--mono);">UMG · Puerto Barrios · Software Engineering · Ciclo 9 · 2026</div>
+          </div>
+        </div>
+        <div class="final-team">
+          <div class="team-member"><div class="team-av">A</div><div class="team-n">Andy</div><div class="team-role">Auth · Pagos · Frontend</div></div>
+          <div class="team-member"><div class="team-av">C</div><div class="team-n">Carlos</div><div class="team-role">Tienda · Productos · Pedidos</div></div>
+          <div class="team-member"><div class="team-av">E</div><div class="team-n">Erick</div><div class="team-role">IA · Envíos · Admin</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="speaker-note">
+    <div class="sn-icon">N</div>
+    <p class="sn-text">Si preguntan algo no cubierto aquí, es válido decir: <strong>"Lo verificamos en el código durante la demo"</strong> — abre pgAdmin, muestra la tabla directamente, o abre el archivo en VS Code. La transparencia del código es una fortaleza, no una debilidad.</p>
+  </div>
+</section>
+
+</div><!-- /slides-wrapper -->
+
+<nav id="nav">
+  <button class="nav-btn" id="btn-prev" title="Anterior (←)">&#8592;</button>
+  <div id="slide-dots"></div>
+  <span id="slide-counter">01 / 12</span>
+  <button class="nav-btn" id="btn-next" title="Siguiente (→)">&#8594;</button>
+  <button class="nav-btn" id="btn-fs" title="Pantalla completa (F)" style="font-size:.7rem;">&#9974;</button>
+</nav>
+
+<script src="slides.js"></script>
+</body>
+</html>

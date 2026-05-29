@@ -6,6 +6,7 @@ export default function useAdmin() {
   const [metrics, setMetrics] = useState(null);
   const [inventory, setInventory] = useState([]);
   const [discrepancies, setDiscrepancies] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -76,11 +77,33 @@ export default function useAdmin() {
     setStores((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'active' } : s)));
   }, []);
 
+  const fetchProducts = useCallback(async (filters = {}) => {
+    setError(null);
+    try {
+      const { data } = await api.get('/admin/products', { params: filters });
+      setProducts(data.data.products || []);
+    } catch (err) {
+      setProducts([]);
+      setError(err.message || 'No se pudieron cargar los productos.');
+    }
+  }, []);
+
+  const activateProduct = useCallback(async (id) => {
+    await api.put(`/admin/products/${id}/activate`);
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'active' } : p)));
+  }, []);
+
+  const deactivateProduct = useCallback(async (id) => {
+    await api.put(`/admin/products/${id}/deactivate`);
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'draft' } : p)));
+  }, []);
+
   return {
     stores,
     metrics,
     inventory,
     discrepancies,
+    products,
     loading,
     error,
     fetchStores,
@@ -89,5 +112,8 @@ export default function useAdmin() {
     approveStore,
     suspendStore,
     reactivateStore,
+    fetchProducts,
+    activateProduct,
+    deactivateProduct,
   };
 }

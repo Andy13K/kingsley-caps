@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 
 const SEPOLIA_CHAIN_ID = '0xaa36a7';
+const SEPOLIA_PARAMS = {
+  chainId: SEPOLIA_CHAIN_ID,
+  chainName: 'Sepolia Test Network',
+  nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 },
+  rpcUrls: ['https://rpc.sepolia.org'],
+  blockExplorerUrls: ['https://sepolia.etherscan.io'],
+};
 
 export const METAMASK_ERRORS = {
   ERR_C01: 'MetaMask no está instalado. Por favor instálalo para continuar.',
@@ -71,14 +78,34 @@ export const useMetaMask = () => {
   }, []);
 
   const switchToSepolia = useCallback(async () => {
+    if (!window.ethereum) {
+      setError('ERR_C01');
+      return;
+    }
+
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: SEPOLIA_CHAIN_ID }],
       });
+      setChainId(SEPOLIA_CHAIN_ID);
       setError(null);
-    } catch {
-      setError('ERR_C03');
+    } catch (err) {
+      if (err.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [SEPOLIA_PARAMS],
+          });
+          setChainId(SEPOLIA_CHAIN_ID);
+          setError(null);
+          return;
+        } catch {
+          setError('ERR_C03');
+          return;
+        }
+      }
+      setError(err.code === 4001 ? 'ERR_C02' : 'ERR_C03');
     }
   }, []);
 

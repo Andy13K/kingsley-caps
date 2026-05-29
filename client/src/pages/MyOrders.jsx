@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useOrders } from '../hooks/useOrders';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import Badge from '../components/ui/Badge';
@@ -54,7 +55,7 @@ function PaymentIcon({ method }) {
   );
 }
 
-function OrderDetailModal({ order, onClose }) {
+function OrderDetailModal({ order, onClose, onOpenProof }) {
   if (!order) return null;
   const status = STATUS[order.status] ?? { label: order.status, variant: 'gray' };
   const activeStep = Math.max(0, TRACE_STEPS.findIndex(([key]) => key === order.status));
@@ -105,9 +106,22 @@ function OrderDetailModal({ order, onClose }) {
 
         <div>
           <p className="text-xs font-semibold text-charcoal-800/70 dark:text-zinc-400 uppercase tracking-widest mb-2">Método de pago</p>
-          <div className="flex items-center gap-2 text-sm text-charcoal-800 dark:text-zinc-300">
-            <PaymentIcon method={order.paymentMethod} />
-            {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-charcoal-800 dark:text-zinc-300">
+              <PaymentIcon method={order.paymentMethod} />
+              {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
+            </div>
+            {order.paymentMethod === 'transfer' && order.status === 'pending_payment' && (
+              order.transferProofUrl ? (
+                <a href={order.transferProofUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue dark:text-blue-light">
+                  Ver comprobante
+                </a>
+              ) : (
+                <Button size="sm" onClick={() => onOpenProof(order)}>
+                  Subir comprobante
+                </Button>
+              )
+            )}
           </div>
         </div>
 
@@ -147,8 +161,37 @@ function OrderDetailModal({ order, onClose }) {
 export default function MyOrders() {
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const { orders, total, loading, error } = useOrders(page, LIMIT);
+  const [proofOrder, setProofOrder] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
+  const [proofReference, setProofReference] = useState('');
+  const [submittingProof, setSubmittingProof] = useState(false);
+  const { orders, total, loading, error, uploadTransferProof } = useOrders(page, LIMIT);
   const totalPages = Math.ceil(total / LIMIT);
+
+  const openProofModal = (order) => {
+    setProofOrder(order);
+    setProofFile(null);
+    setProofReference(order.transferReference || '');
+  };
+
+  const submitProof = async (event) => {
+    event.preventDefault();
+    if (!proofFile) {
+      toast.error('Adjunta el comprobante de pago');
+      return;
+    }
+    setSubmittingProof(true);
+    try {
+      await uploadTransferProof({ orderId: proofOrder.id, file: proofFile, reference: proofReference.trim() });
+      toast.success('Comprobante enviado para validacion');
+      setProofOrder(null);
+      setSelectedOrder(null);
+    } catch (err) {
+      toast.error(err.message || 'No se pudo subir el comprobante');
+    } finally {
+      setSubmittingProof(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
@@ -221,6 +264,11 @@ export default function MyOrders() {
                             Guía: {order.trackingNumber}
                           </p>
                         )}
+                        {order.paymentMethod === 'transfer' && order.status === 'pending_payment' && (
+                          <p className={`text-xs font-semibold ${order.transferProofUrl ? 'text-green-600 dark:text-green-400' : 'text-gold-dark dark:text-gold-light'}`}>
+                            {order.transferProofUrl ? 'Comprobante enviado' : 'Toca para subir comprobante'}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -271,7 +319,43 @@ export default function MyOrders() {
       <OrderDetailModal
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onOpenProof={openProofModal}
       />
+
+      <Modal isOpen={!!proofOrder} onClose={() => setProofOrder(null)} title="Comprobante de transferencia">
+        <form onSubmit={submitProof} className="space-y-4">
+          <p className="text-sm text-charcoal-700 dark:text-zinc-300">
+            Sube una imagen o PDF del comprobante para que la tienda valide el pago.
+          </p>
+          <div>
+            <label className="block text-sm font-semibold text-charcoal-800 dark:text-zinc-200 mb-1">Referencia</label>
+            <input
+              type="text"
+              value={proofReference}
+              onChange={(event) => setProofReference(event.target.value)}
+              placeholder="Numero de transaccion o banco"
+              className="w-full px-3 py-2 rounded-lg bg-white dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 text-charcoal-950 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/40"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-charcoal-800 dark:text-zinc-200 mb-1">Archivo</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+              onChange={(event) => setProofFile(event.target.files?.[0] || null)}
+              className="w-full px-3 py-2 rounded-lg bg-white dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 text-charcoal-950 dark:text-white file:mr-3 file:border-0 file:rounded-md file:bg-gold file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-charcoal-950"
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setProofOrder(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1" disabled={submittingProof}>
+              {submittingProof ? 'Subiendo...' : 'Enviar comprobante'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

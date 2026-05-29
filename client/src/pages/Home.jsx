@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../hooks/useProducts';
+import { useAuth } from '../hooks/useAuth';
 import ProductCard from '../components/products/ProductCard';
 import Button from '../components/ui/Button';
 
@@ -44,7 +45,7 @@ function ProductRail({ title, eyebrow, products, emptyText }) {
   );
 }
 
-function HeroSection() {
+function HeroSection({ isAuthenticated }) {
   const navigate = useNavigate();
 
   return (
@@ -74,12 +75,16 @@ function HeroSection() {
               <Button size="lg" variant="gold" onClick={() => navigate('/catalog')}>
                 Ver catálogo
               </Button>
-              <Button size="lg" variant="outline" className="border-white/70 text-white hover:bg-white/10" onClick={() => navigate('/register')}>
-                Crear cuenta
-              </Button>
-              <Button size="lg" variant="ghost" className="text-white hover:bg-white/10" onClick={() => navigate('/login')}>
-                Ingresar
-              </Button>
+              {!isAuthenticated && (
+                <>
+                  <Button size="lg" variant="outline" className="border-white/70 text-white hover:bg-white/10" onClick={() => navigate('/register')}>
+                    Crear cuenta
+                  </Button>
+                  <Button size="lg" variant="ghost" className="text-white hover:bg-white/10" onClick={() => navigate('/login')}>
+                    Ingresar
+                  </Button>
+                </>
+              )}
             </div>
         </div>
       </div>
@@ -117,7 +122,7 @@ function HowItWorks() {
   );
 }
 
-function VendorSection({ storesCount }) {
+function VendorSection({ storesCount, isAuthenticated }) {
   const navigate = useNavigate();
 
   return (
@@ -130,9 +135,11 @@ function VendorSection({ storesCount }) {
             Los vendedores pueden crear su tienda, subir gorras con 3 a 5 imágenes, manejar variantes y ajustar stock. El dueño de Kingsley puede revisar el inventario global desde administración.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mt-8">
-            <Button variant="gold" onClick={() => navigate('/register')}>
-              Quiero vender
-            </Button>
+            {!isAuthenticated && (
+              <Button variant="gold" onClick={() => navigate('/register')}>
+                Quiero vender
+              </Button>
+            )}
             <Button variant="outline" className="border-white/60 text-white hover:bg-white/10" onClick={() => navigate('/catalog')}>
               Ver gorras
             </Button>
@@ -150,6 +157,7 @@ function VendorSection({ storesCount }) {
 
 export default function Home() {
   const { products, loading, error } = useProducts({ limit: 24 });
+  const { isAuthenticated } = useAuth();
   const officialProducts = products.filter(isOfficialProduct);
   const vendorProducts = products.filter((product) => !isOfficialProduct(product));
   const storeCount = new Set(products.map((product) => product.Store?.id ?? product.store?.id).filter(Boolean)).size;
@@ -164,7 +172,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col bg-cream dark:bg-charcoal-950">
-      <HeroSection />
+      <HeroSection isAuthenticated={isAuthenticated} />
       {error && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-700 dark:text-red-300">
@@ -185,7 +193,7 @@ export default function Home() {
         products={vendorProducts}
         emptyText="Todavía no hay productos de vendedores activos."
       />
-      <VendorSection storesCount={storeCount} />
+      <VendorSection storesCount={storeCount} isAuthenticated={isAuthenticated} />
     </div>
   );
 }

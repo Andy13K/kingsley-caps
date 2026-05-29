@@ -10,7 +10,7 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const getMine = asyncHandler(async (req, res) => {
-  const store = await storeService.findMine(req.user.id);
+  const store = await storeService.findMine(req.user.id, req.user.role);
   res.json({ success: true, data: store });
 });
 
@@ -23,16 +23,18 @@ const update = asyncHandler(async (req, res) => {
   const store = await storeService.update({
     id: req.params.id,
     vendorId: req.user.id,
+    userRole: req.user.role,
     payload: req.body,
   });
   res.json({ success: true, data: store });
 });
 
 const updateMine = asyncHandler(async (req, res) => {
-  const mine = await storeService.findMine(req.user.id);
+  const mine = await storeService.findMine(req.user.id, req.user.role);
   const store = await storeService.update({
     id: mine.id,
     vendorId: req.user.id,
+    userRole: req.user.role,
     payload: req.body,
   });
   res.json({ success: true, data: store });
@@ -42,6 +44,7 @@ const updateCryptoConfig = asyncHandler(async (req, res) => {
   const store = await storeService.updateCryptoConfig({
     id: req.params.id,
     vendorId: req.user.id,
+    userRole: req.user.role,
     payload: req.body,
   });
   res.json({ success: true, data: store });
@@ -51,6 +54,7 @@ const publish = asyncHandler(async (req, res) => {
   const store = await storeService.publish({
     id: req.params.id,
     vendorId: req.user.id,
+    userRole: req.user.role,
   });
   res.json({ success: true, data: store });
 });

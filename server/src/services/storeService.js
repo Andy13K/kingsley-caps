@@ -19,9 +19,22 @@ const generateUniqueSlug = async (name) => {
   return slug;
 };
 
-const assertOwner = (store, userId) => {
+const OFFICIAL_STORE_WHERE = {
+  [Op.or]: [
+    { slug: 'kingsley-caps-oficial' },
+    { name: { [Op.iLike]: '%Kingsley Caps Oficial%' } },
+  ],
+};
+
+const isOfficialStore = (store) =>
+  store?.slug === 'kingsley-caps-oficial' || /kingsley caps oficial/i.test(store?.name || '');
+
+const assertOwner = (store, userId, userRole) => {
   if (!store) {
     throw new NotFoundError('Tienda');
+  }
+  if (userRole === 'superadmin' && isOfficialStore(store)) {
+    return;
   }
   if (store.vendor_id !== userId) {
     throw new ForbiddenError('Solo el propietario puede modificar esta tienda');
@@ -54,6 +67,9 @@ const create = async ({ vendorId, name, description, logoUrl, logo_url }) => {
     throw new ConflictError('Ya existe una tienda con ese nombre');
   }
 
+  const vendor = await User.findByPk(vendorId, { attributes: ['role'] });
+  const isSuperadmin = vendor?.role === 'superadmin';
+
   const slug = await generateUniqueSlug(name);
   const store = await Store.create({
     vendor_id: vendorId,
@@ -61,21 +77,45 @@ const create = async ({ vendorId, name, description, logoUrl, logo_url }) => {
     slug,
     description,
     logo_url: logoUrl ?? logo_url ?? null,
+    status: isSuperadmin ? 'active' : 'draft',
   });
-  const admins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
-  await Promise.all(admins.map((admin) => Notification.create({
-    user_id: admin.id,
-    store_id: store.id,
-    type: 'store_approval',
-    title: 'Tienda pendiente de aprobacion',
-    message: `La tienda "${store.name}" solicita aprobacion para vender en Kingsley Caps.`,
-    metadata: { storeId: store.id, vendorId },
-  })));
+
+  if (!isSuperadmin) {
+    const admins = await User.findAll({ where: { role: 'superadmin' }, attributes: ['id'] });
+    await Promise.all(admins.map((admin) => Notification.create({
+      user_id: admin.id,
+      store_id: store.id,
+      type: 'store_approval',
+      title: 'Tienda pendiente de aprobacion',
+      message: `La tienda "${store.name}" solicita aprobacion para vender en Kingsley Caps.`,
+      metadata: { storeId: store.id, vendorId },
+    })));
+  }
+
   return store;
 };
 
-const findMine = async (vendorId) => {
+const findMine = async (vendorId, userRole) => {
   const store = await Store.findOne({ where: { vendor_id: vendorId } });
+  if (store) {
+    return store;
+  }
+
+  if (userRole === 'superadmin') {
+    const officialStore = await Store.findOne({ where: OFFICIAL_STORE_WHERE });
+    if (officialStore) {
+      return officialStore;
+    }
+  }
+
+  if (!store) {
+    throw new NotFoundError('Tienda');
+  }
+  return store;
+};
+
+const findOfficial = async () => {
+  const store = await Store.findOne({ where: OFFICIAL_STORE_WHERE });
   if (!store) {
     throw new NotFoundError('Tienda');
   }
@@ -109,9 +149,9 @@ const findPublicBySlug = async (slug) => {
   return store;
 };
 
-const update = async ({ id, vendorId, payload }) => {
+const update = async ({ id, vendorId, userRole, payload }) => {
   const store = await Store.findByPk(id);
-  assertOwner(store, vendorId);
+  assertOwner(store, vendorId, userRole);
 
   if (payload.name && payload.name !== store.name) {
     const conflict = await Store.findOne({
@@ -126,9 +166,9 @@ const update = async ({ id, vendorId, payload }) => {
   return store;
 };
 
-const updateCryptoConfig = async ({ id, vendorId, payload }) => {
+const updateCryptoConfig = async ({ id, vendorId, userRole, payload }) => {
   const store = await Store.findByPk(id);
-  assertOwner(store, vendorId);
+  assertOwner(store, vendorId, userRole);
 
   await store.update({
     crypto_enabled: payload.cryptoEnabled ?? payload.crypto_enabled ?? true,
@@ -138,9 +178,9 @@ const updateCryptoConfig = async ({ id, vendorId, payload }) => {
   return store;
 };
 
-const publish = async ({ id, vendorId }) => {
+const publish = async ({ id, vendorId, userRole }) => {
   const store = await Store.findByPk(id);
-  assertOwner(store, vendorId);
+  assertOwner(store, vendorId, userRole);
 
   if (store.status === 'active') {
     return store;
@@ -158,6 +198,8 @@ const publish = async ({ id, vendorId }) => {
 module.exports = {
   create,
   findMine,
+  findOfficial,
+  isOfficialStore,
   findById,
   findPublicBySlug,
   update,

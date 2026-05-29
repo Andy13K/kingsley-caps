@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import Spinner from '../../components/ui/Spinner';
+import { useAuth } from '../../hooks/useAuth';
 
 const ETH_REGEX = /^0x[0-9a-fA-F]{40}$/;
 
@@ -20,6 +21,8 @@ const DEFAULT_STORE = {
 };
 
 export default function VendorSettings() {
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [store, setStore] = useState(DEFAULT_STORE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -136,15 +139,24 @@ export default function VendorSettings() {
         </div>
       )}
 
-      <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
-        <p className="font-semibold text-white">Aprobacion y comision</p>
-        <p className="mt-1">
-          Tu tienda queda pendiente hasta que el administrador la apruebe. Mientras este pendiente, tus productos se guardan pero no aparecen en el catalogo publico.
-        </p>
-        <p className="mt-1">
-          Kingsley retiene una comision del 10% sobre el subtotal de productos de cada orden; el resto se calcula como monto a liquidar al vendedor.
-        </p>
-      </div>
+      {isSuperadmin ? (
+        <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
+          <p className="font-semibold text-white">Tienda administradora</p>
+          <p className="mt-1">
+            Esta es la tienda oficial de Kingsley Caps. Sus productos se publican en el catálogo de forma inmediata sin necesidad de aprobación y no aplica comisión de marketplace.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
+          <p className="font-semibold text-white">Aprobacion y comision</p>
+          <p className="mt-1">
+            Tu tienda queda pendiente hasta que el administrador la apruebe. Mientras este pendiente, tus productos se guardan pero no aparecen en el catalogo publico.
+          </p>
+          <p className="mt-1">
+            Kingsley retiene una comision del 10% sobre el subtotal de productos de cada orden; el resto se calcula como monto a liquidar al vendedor.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Store info */}

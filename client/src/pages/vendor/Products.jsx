@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import Spinner from '../../components/ui/Spinner.jsx';
 import api from '../../services/api.js';
 import { formatCurrency } from '../../utils/formatters.js';
+import { useAuth } from '../../hooks/useAuth.js';
 
 const STATUS_LABEL = { draft: 'Borrador', active: 'Activo', archived: 'Archivado' };
 const STATUS_COLOR = {
@@ -28,6 +29,8 @@ const CONFIDENCE_CLASSES = {
 };
 
 const Products = () => {
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [products, setProducts] = useState([]);
   const [store, setStore] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -266,15 +269,17 @@ const Products = () => {
         </button>
       </header>
 
-      {storeNeedsApproval && (
+      {!isSuperadmin && storeNeedsApproval && (
         <div className="rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold-light">
           Tu tienda esta pendiente de aprobacion del administrador. Puedes cargar y editar productos, pero apareceran en el catalogo publico hasta que la tienda quede aprobada.
         </div>
       )}
 
-      <div className="rounded-xl border border-blue-400/25 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-        Comision marketplace: Kingsley retiene 10% sobre el subtotal de productos por cada venta. El resto queda como monto a liquidar al vendedor.
-      </div>
+      {!isSuperadmin && (
+        <div className="rounded-xl border border-blue-400/25 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+          Comision marketplace: Kingsley retiene 10% sobre el subtotal de productos por cada venta. El resto queda como monto a liquidar al vendedor.
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 p-5 space-y-4 shadow-sm">

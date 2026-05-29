@@ -7,11 +7,14 @@ export const CartContext = createContext(null);
 const normalizeCartItem = (item) => {
   const variant = item.ProductVariant ?? item.productVariant ?? {};
   const product = variant.Product ?? variant.product ?? {};
+  const store = product.Store ?? product.store ?? variant.Store ?? variant.store ?? {};
   return {
     cartItemId: item.id,
     variantId: item.productVariantId ?? item.product_variant_id ?? variant.id,
     productId: product.id ?? variant.product_id,
     storeId: product.store_id ?? product.storeId ?? variant.store_id ?? variant.storeId,
+    storeName: store.name ?? product.storeName ?? product.store_name ?? item.storeName ?? item.store_name ?? 'Tienda',
+    storeSlug: store.slug ?? product.storeSlug ?? product.store_slug ?? item.storeSlug ?? item.store_slug,
     name: product.name ?? 'Producto',
     size: variant.size,
     color: variant.color,
@@ -64,6 +67,9 @@ export function CartProvider({ children }) {
     }
 
     const storeId = product.store_id ?? product.storeId ?? variant.store_id ?? variant.storeId;
+    const store = product.Store ?? product.store ?? variant.Store ?? variant.store ?? {};
+    const storeName = store.name ?? product.storeName ?? product.store_name ?? 'Tienda';
+    const storeSlug = store.slug ?? product.storeSlug ?? product.store_slug;
     if (!storeId) {
       throw new Error('El producto no tiene tienda asociada.');
     }
@@ -92,6 +98,8 @@ export function CartProvider({ children }) {
           variantId: variant.id,
           productId: product.id,
           storeId,
+          storeName,
+          storeSlug,
           name: product.name,
           size: variant.size,
           color: variant.color,

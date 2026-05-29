@@ -3,8 +3,13 @@ const inventoryService = require('../services/inventoryService');
 const AppError = require('../utils/AppError');
 const aiService = require('../services/aiService');
 const { Store } = require('../models');
+const storeService = require('../services/storeService');
 
-const getStoreForVendor = async (userId) => {
+const getStoreForVendor = async (userId, userRole) => {
+  if (userRole === 'superadmin') {
+    return storeService.findMine(userId, userRole);
+  }
+
   const store = await Store.findOne({ where: { vendor_id: userId } });
   if (!store) {throw new AppError('No tienes una tienda asociada', 403);}
   return store;
@@ -12,7 +17,7 @@ const getStoreForVendor = async (userId) => {
 
 const getVariantStock = asyncHandler(async (req, res) => {
   const { variantId } = req.params;
-  const store = await getStoreForVendor(req.user.id);
+  const store = await getStoreForVendor(req.user.id, req.user.role);
   const variant = await inventoryService.getVariantStock({ variantId, storeId: store.id });
   res.json({ success: true, data: { variant } });
 });
@@ -26,7 +31,7 @@ const serializeVariant = (variant) => {
 };
 
 const listVariants = asyncHandler(async (req, res) => {
-  const store = await getStoreForVendor(req.user.id);
+  const store = await getStoreForVendor(req.user.id, req.user.role);
   const variants = await inventoryService.listVariants({ storeId: store.id });
   res.json({ success: true, data: { variants: variants.map(serializeVariant) } });
 });
@@ -34,7 +39,7 @@ const listVariants = asyncHandler(async (req, res) => {
 const adjustStock = asyncHandler(async (req, res) => {
   const { variantId } = req.params;
   const { quantity, type, reason } = req.body;
-  const store = await getStoreForVendor(req.user.id);
+  const store = await getStoreForVendor(req.user.id, req.user.role);
   const result = await inventoryService.adjustStock({
     productVariantId: variantId,
     quantity,
@@ -47,13 +52,13 @@ const adjustStock = asyncHandler(async (req, res) => {
 });
 
 const getAlerts = asyncHandler(async (req, res) => {
-  const store = await getStoreForVendor(req.user.id);
+  const store = await getStoreForVendor(req.user.id, req.user.role);
   const alerts = await inventoryService.getAlerts({ storeId: store.id });
   res.json({ success: true, data: { alerts: alerts.map(serializeVariant), count: alerts.length } });
 });
 
 const getMovements = asyncHandler(async (req, res) => {
-  const store = await getStoreForVendor(req.user.id);
+  const store = await getStoreForVendor(req.user.id, req.user.role);
   const { movements, total, page, limit, totalPages } = await inventoryService.getMovements({
     storeId: store.id,
     filters: req.query,

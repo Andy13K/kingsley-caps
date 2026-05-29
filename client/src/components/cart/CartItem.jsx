@@ -17,6 +17,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
 
       <div className="flex-1 min-w-0">
         <h3 className="font-bold text-charcoal-950 dark:text-zinc-50 text-sm leading-snug truncate">{item.name}</h3>
+        <p className="text-xs font-semibold text-blue-dark dark:text-blue-light mt-0.5 truncate">{item.storeName ?? 'Tienda'}</p>
         {(item.size || item.color) && (
           <p className="text-xs text-charcoal-800/70 dark:text-zinc-400 mt-0.5">{[item.size, item.color].filter(Boolean).join(' · ')}</p>
         )}

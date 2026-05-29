@@ -53,8 +53,9 @@ const NAV_ITEMS = [
 ];
 
 export default function VendorSidebar({ onClose }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const panelLabel = user?.role === 'superadmin' ? 'Admin Panel' : 'Vendor Panel';
 
   const handleLogout = async () => {
     try { await logout(); navigate('/'); toast.success('Hasta pronto'); }
@@ -62,11 +63,11 @@ export default function VendorSidebar({ onClose }) {
   };
 
   return (
-    <aside className="flex flex-col h-full bg-charcoal-900 dark:bg-charcoal-950 w-64 min-h-screen">
+    <aside className="flex h-dvh min-h-screen w-64 flex-col bg-charcoal-900 dark:bg-charcoal-950">
       <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md bg-gold flex items-center justify-center font-black text-white text-xs">KC</div>
-          <span className="font-bold text-white text-sm tracking-tight">Vendor Panel</span>
+          <span className="font-bold text-white text-sm tracking-tight">{panelLabel}</span>
         </div>
         {onClose && (
           <button onClick={onClose} className="text-zinc-400 hover:text-white md:hidden">
@@ -78,6 +79,16 @@ export default function VendorSidebar({ onClose }) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
+        <button
+          type="button"
+          onClick={() => { onClose?.(); navigate('/'); }}
+          className="mb-3 flex w-full items-center gap-3 rounded-lg border border-white/10 px-3 py-2.5 text-sm font-medium text-zinc-300 transition-colors hover:border-gold-light/40 hover:bg-white/5 hover:text-white"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.125 1.125 0 011.592 0L21.75 12M4.5 9.75v9.375c0 .621.504 1.125 1.125 1.125H9.75v-5.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v5.625h4.125c.621 0 1.125-.504 1.125-1.125V9.75" />
+          </svg>
+          Volver a la tienda
+        </button>
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}

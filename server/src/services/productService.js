@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { sequelize, Product, ProductVariant, Store } = require('../models');
+const { sequelize, Product, ProductVariant, Store, User } = require('../models');
+const storeService = require('./storeService');
 const {
   NotFoundError,
   ForbiddenError,
@@ -89,10 +90,8 @@ const list = async (filters) => {
 };
 
 const listForVendor = async ({ vendorId, filters = {} }) => {
-  const store = await Store.findOne({ where: { vendor_id: vendorId } });
-  if (!store) {
-    throw new NotFoundError('Tienda');
-  }
+  const vendor = await User.findByPk(vendorId, { attributes: ['role'] });
+  const store = await storeService.findMine(vendorId, vendor?.role);
 
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 50;
@@ -134,6 +133,10 @@ const assertStoreOwner = async (storeId, userId) => {
   if (!store) {
     throw new NotFoundError('Tienda');
   }
+  const vendor = await User.findByPk(userId, { attributes: ['role'] });
+  if (vendor?.role === 'superadmin' && storeService.isOfficialStore(store)) {
+    return store;
+  }
   if (store.vendor_id !== userId) {
     throw new ForbiddenError('No eres propietario de esta tienda');
   }
@@ -152,7 +155,9 @@ const checkSkuUnique = async (skus, transaction, excludeProductId = null) => {
 };
 
 const create = async ({ storeId, vendorId, payload }) => {
-  await assertStoreOwner(storeId, vendorId);
+  const store = await assertStoreOwner(storeId, vendorId);
+  const vendor = await User.findByPk(vendorId, { attributes: ['role'] });
+  const autoActivate = vendor?.role === 'superadmin';
 
   return sequelize.transaction(async (t) => {
     const skus = (payload.variants ?? []).map((v) => v.sku);
@@ -163,10 +168,13 @@ const create = async ({ storeId, vendorId, payload }) => {
       await checkSkuUnique(skus, t);
     }
 
-    const product = await Product.create(
-      { store_id: storeId, ...toProductPayload(payload) },
-      { transaction: t }
-    );
+    const productData = {
+      store_id: storeId,
+      ...toProductPayload(payload),
+      ...(autoActivate && !payload.status ? { status: 'active' } : {}),
+    };
+
+    const product = await Product.create(productData, { transaction: t });
 
     if (payload.variants?.length > 0) {
       const variantData = payload.variants.map((v) => toVariantPayload(v, product.id, storeId));
