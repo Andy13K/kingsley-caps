@@ -2,36 +2,25 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const normalizeOrder = (order) => {
-  const payments = order.payments ?? order.Payments ?? [];
-  const transferPayment = payments.find((payment) => payment.method === 'transfer') ?? null;
-
-  return {
-    ...order,
-    payments,
-    paymentMethod: order.paymentMethod ?? order.payment_method,
-    createdAt: order.createdAt ?? order.created_at,
-    paidAt: order.paidAt ?? order.paid_at,
-    deliveredAt: order.deliveredAt ?? order.delivered_at,
-    shippingAddress: order.shippingAddress ?? order.shipping_address ?? {},
-    trackingNumber: order.trackingNumber ?? order.tracking_number,
-    trackingCompany: order.trackingCompany ?? order.tracking_company,
-    shippingProofUrl: order.shippingProofUrl ?? order.shipping_proof_url,
-    transferPaymentId: transferPayment?.id,
-    transferPaymentStatus: transferPayment?.status,
-    transferProofUrl: transferPayment?.transferProofUrl ?? transferPayment?.transfer_proof_url,
-    transferReference: transferPayment?.transferReference ?? transferPayment?.transfer_reference,
-    items: (order.items ?? []).map((item) => ({
-      ...item,
-      productName: item.productName ?? item.product_name,
-      variantSize: item.variantSize ?? item.variant_size,
-      variantColor: item.variantColor ?? item.variant_color,
-      unitPrice: Number(item.unitPrice ?? item.unit_price ?? 0),
-      subtotal: Number(item.subtotal ?? 0),
-    })),
-    total: Number(order.total ?? 0),
-  };
-};
+const normalizeOrder = (order) => ({
+  ...order,
+  paymentMethod: order.paymentMethod ?? order.payment_method,
+  createdAt: order.createdAt ?? order.created_at,
+  paidAt: order.paidAt ?? order.paid_at,
+  deliveredAt: order.deliveredAt ?? order.delivered_at,
+  shippingAddress: order.shippingAddress ?? order.shipping_address ?? {},
+  trackingNumber: order.trackingNumber ?? order.tracking_number,
+  trackingCompany: order.trackingCompany ?? order.tracking_company,
+  items: (order.items ?? []).map((item) => ({
+    ...item,
+    productName: item.productName ?? item.product_name,
+    variantSize: item.variantSize ?? item.variant_size,
+    variantColor: item.variantColor ?? item.variant_color,
+    unitPrice: Number(item.unitPrice ?? item.unit_price ?? 0),
+    subtotal: Number(item.subtotal ?? 0),
+  })),
+  total: Number(order.total ?? 0),
+});
 
 export const useOrders = (page = 1, limit = 10) => {
   const [orders, setOrders] = useState([]);
@@ -62,18 +51,5 @@ export const useOrders = (page = 1, limit = 10) => {
     fetchOrders();
   }, [fetchOrders]);
 
-  const uploadTransferProof = useCallback(async ({ orderId, file, reference }) => {
-    const formData = new FormData();
-    formData.append('orderId', orderId);
-    if (reference) formData.append('reference', reference);
-    formData.append('proof', file);
-
-    const { data } = await api.post('/payments/transfer/proof', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    await fetchOrders();
-    return data;
-  }, [fetchOrders]);
-
-  return { orders, total, loading, error, refetch: fetchOrders, uploadTransferProof };
+  return { orders, total, loading, error, refetch: fetchOrders };
 };

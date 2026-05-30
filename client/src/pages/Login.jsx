@@ -95,7 +95,7 @@ export default function Login() {
 
             <Input id="password" name="password" type="password" label="Contrasena"
               placeholder="********" value={form.password} onChange={handleChange}
-              error={errors.password} autoComplete="current-password" disabled={loading || rateLimited} showPasswordToggle />
+              error={errors.password} autoComplete="current-password" disabled={loading || rateLimited} />
 
             <Button type="submit" variant="blue" loading={loading} disabled={rateLimited} className="w-full mt-2" size="lg">
               {rateLimited ? 'Bloqueado temporalmente' : 'Entrar'}

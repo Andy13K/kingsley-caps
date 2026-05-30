@@ -1,4 +1,4 @@
-const { sequelize, Cart, CartItem, ProductVariant, Product, Store } = require('../models');
+const { sequelize, Cart, CartItem, ProductVariant, Product } = require('../models');
 const {
   NotFoundError,
   ForbiddenError,
@@ -11,7 +11,7 @@ const ITEM_INCLUDE = {
   include: [
     {
       model: ProductVariant,
-      include: [{ model: Product, include: [{ model: Store, attributes: ['id', 'name', 'slug', 'vendor_id'] }] }],
+      include: [{ model: Product }],
     },
   ],
 };
@@ -29,7 +29,7 @@ const getCart = async ({ userId, storeId }) => {
     const carts = await Cart.findAll({
       where: { userId },
       include: [ITEM_INCLUDE],
-      order: [[{ model: CartItem, as: 'items' }, 'created_at', 'ASC']],
+      order: [[{ model: CartItem, as: 'items' }, 'createdAt', 'ASC']],
     });
     const items = carts.flatMap((cart) => cart.items || []);
     return { id: null, userId, storeId: null, items, ...computeTotals(items) };
@@ -38,7 +38,7 @@ const getCart = async ({ userId, storeId }) => {
   const cart = await Cart.findOne({
     where: { userId, storeId },
     include: [ITEM_INCLUDE],
-    order: [[{ model: CartItem, as: 'items' }, 'created_at', 'ASC']],
+    order: [[{ model: CartItem, as: 'items' }, 'createdAt', 'ASC']],
   });
 
   if (!cart) {
@@ -54,7 +54,7 @@ const resolveUnitPrice = (variant) =>
 const addItem = async ({ userId, storeId, productVariantId, quantity }) => {
   return sequelize.transaction(async (t) => {
     const variant = await ProductVariant.findByPk(productVariantId, {
-      include: [{ model: Product, include: [{ model: Store, attributes: ['id', 'name', 'slug', 'vendor_id'] }] }],
+      include: [{ model: Product }],
       transaction: t,
     });
 

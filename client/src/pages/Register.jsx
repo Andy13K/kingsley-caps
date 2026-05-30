@@ -107,11 +107,11 @@ export default function Register() {
 
             <Input id="password" name="password" type="password" label="Contrasena"
               placeholder="Min. 8 caracteres, 1 mayuscula y 1 numero"
-              value={form.password} onChange={handleChange} error={errors.password} autoComplete="new-password" disabled={loading} showPasswordToggle />
+              value={form.password} onChange={handleChange} error={errors.password} autoComplete="new-password" disabled={loading} />
 
             <Input id="confirmPassword" name="confirmPassword" type="password" label="Confirmar contrasena"
               placeholder="Repite tu contrasena"
-              value={form.confirmPassword} onChange={handleChange} error={errors.confirmPassword} autoComplete="new-password" disabled={loading} showPasswordToggle />
+              value={form.confirmPassword} onChange={handleChange} error={errors.confirmPassword} autoComplete="new-password" disabled={loading} />
 
             <Input id="phone" name="phone" type="tel" label="Telefono (opcional)" placeholder="+502 4521 8734"
               value={form.phone} onChange={handleChange} error={errors.phone} autoComplete="tel" disabled={loading} />

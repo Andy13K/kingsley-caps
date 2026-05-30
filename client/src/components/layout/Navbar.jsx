@@ -38,7 +38,7 @@ function CartIcon({ count }) {
 }
 
 export default function Navbar() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { count } = useCart();
   const { isDark, toggle } = useTheme();
   const navigate = useNavigate();
@@ -108,7 +108,7 @@ export default function Navbar() {
                   Salir
                 </button>
               </div>
-            ) : !isLoading ? (
+            ) : (
               <div className="hidden md:flex items-center gap-2 ml-1">
                 <button onClick={() => navigate('/login')} className={`${navLink} px-3 py-1.5 rounded-lg hover:bg-charcoal-50 dark:hover:bg-charcoal-800`}>
                   Ingresar
@@ -120,7 +120,7 @@ export default function Navbar() {
                   Registro
                 </button>
               </div>
-            ) : null}
+            )}
 
             <button
               className="md:hidden p-2 text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white ml-1"
@@ -155,12 +155,12 @@ export default function Navbar() {
             </button>
             {isAuthenticated ? (
               <button onClick={handleLogout} className="text-left text-charcoal-800 dark:text-zinc-300 hover:text-charcoal-950 dark:hover:text-white px-2 py-1 text-sm font-medium">Salir</button>
-            ) : !isLoading ? (
+            ) : (
               <div className="flex flex-col gap-2 pt-2">
                 <button onClick={() => navigate('/login')} className="text-left text-charcoal-800 dark:text-zinc-300 px-2 py-1 text-sm font-medium">Ingresar</button>
                 <button onClick={() => navigate('/register')} className="bg-gold text-white dark:bg-gold-light dark:text-charcoal-950 rounded-lg px-4 py-2 text-sm font-semibold text-center">Crear cuenta</button>
               </div>
-            ) : null}
+            )}
           </div>
         )}
       </div>

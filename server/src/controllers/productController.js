@@ -1,6 +1,6 @@
 const asyncHandler = require('../utils/asyncHandler');
 const productService = require('../services/productService');
-const storeService = require('../services/storeService');
+const { Store } = require('../models');
 
 const list = asyncHandler(async (req, res) => {
   const { products, meta } = await productService.list(req.query);
@@ -24,7 +24,7 @@ const create = asyncHandler(async (req, res) => {
   const { storeId, ...payload } = req.body;
   let targetStoreId = storeId || req.user.storeId;
   if (!targetStoreId) {
-    const store = await storeService.findMine(req.user.id, req.user.role);
+    const store = await Store.findOne({ where: { vendor_id: req.user.id } });
     targetStoreId = store?.id;
   }
   const product = await productService.create({

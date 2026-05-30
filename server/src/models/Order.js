@@ -22,7 +22,6 @@ const Order = sequelize.define('Order', {
   shipping_method: { type: DataTypes.STRING(100), allowNull: true },
   tracking_number: { type: DataTypes.STRING(100), allowNull: true },
   tracking_company: { type: DataTypes.STRING(100), allowNull: true },
-  shipping_proof_url: { type: DataTypes.STRING(500), allowNull: true },
   payment_method: { type: DataTypes.STRING(20), allowNull: true },
   customer_notes: { type: DataTypes.TEXT, allowNull: true },
   vendor_notes: { type: DataTypes.TEXT, allowNull: true },

@@ -14,8 +14,4 @@ router.put('/stores/:id/approve', adminController.approveStore);
 router.put('/stores/:id/suspend', adminController.suspendStore);
 router.put('/stores/:id/reactivate', adminController.reactivateStore);
 
-router.get('/products', adminController.listProducts);
-router.put('/products/:id/activate', adminController.activateProduct);
-router.put('/products/:id/deactivate', adminController.deactivateProduct);
-
 module.exports = router;

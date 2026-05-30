@@ -25,19 +25,19 @@ router.get('/:id', orderController.getById);
 
 router.put(
   '/:id/status',
-  authorize('vendor', 'staff', 'superadmin'),
+  authorize('vendor', 'staff'),
   validate(updateStatusSchema),
   orderController.updateStatus
 );
 router.put(
   '/:id/tracking',
-  authorize('vendor', 'staff', 'superadmin'),
+  authorize('vendor', 'staff'),
   validate(trackingSchema),
   orderController.setTracking
 );
 router.put(
   '/:id/cancel',
-  authorize('customer', 'vendor', 'superadmin'),
+  authorize('customer', 'vendor'),
   orderController.cancel
 );
 

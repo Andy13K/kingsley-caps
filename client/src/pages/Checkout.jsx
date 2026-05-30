@@ -123,10 +123,9 @@ export default function Checkout() {
                 <div className="p-6 flex flex-col gap-4">
                   <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
                     {items.map((item) => (
-                      <div key={item.variantId} className="flex justify-between gap-3 text-sm">
-                        <span className="min-w-0 text-charcoal-800 dark:text-zinc-300">
-                          <span className="block truncate font-semibold">{item.name} x{item.quantity}</span>
-                          <span className="block truncate text-xs text-blue-dark dark:text-blue-light">{item.storeName ?? 'Tienda'}</span>
+                      <div key={item.variantId} className="flex justify-between text-sm">
+                        <span className="text-charcoal-800 dark:text-zinc-300 truncate mr-2">
+                          {item.name} x{item.quantity}
                         </span>
                         <span className="flex-shrink-0 font-semibold text-charcoal-950 dark:text-zinc-50">
                           {formatCurrency(item.price * item.quantity)}
