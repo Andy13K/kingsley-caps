@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: kingsley-caps
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd client && npm install && npm run build && cd ../server && npm install --omit=dev
+    startCommand: node server/src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # JWT
+      - key: JWT_ACCESS_EXPIRES
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES
+        value: 7d
+      # Ethereum / Blockchain
+      - key: ETH_NETWORK
+        value: sepolia
+      - key: ETH_RPC_URL
+        value: https://rpc.sepolia.org
+      - key: ETH_CONFIRMATIONS_REQUIRED
+        value: "3"
+      - key: COINGECKO_API_URL
+        value: https://api.coingecko.com/api/v3
+      # ---- Debes configurar estas en el dashboard de Render ----
+      - key: DATABASE_URL
+        sync: false   # Tu connection string de Supabase (Transaction Pooler)
+      - key: JWT_ACCESS_SECRET
+        sync: false   # Cadena larga y aleatoria, ej: openssl rand -base64 64
+      - key: JWT_REFRESH_SECRET
+        sync: false   # Otra cadena larga y aleatoria distinta
+      - key: FRONTEND_URL
+        sync: false   # La URL que Render te asigne: https://kingsley-caps.onrender.com
+      - key: GOOGLE_GEMINI_API_KEY
+        sync: false   # Tu API key de Google AI Studio
+      - key: HUGGINGFACE_API_TOKEN
+        sync: false   # Tu token de HuggingFace (opcional)

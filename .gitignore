@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.local
+# .env.production SI se sube (no tiene secretos, solo URLs vacías)
 *.log
 dist/
 build/

@@ -34,6 +34,7 @@ export default function VendorSettings() {
         const s = data.data;
         setHasStore(true);
         setStore({
+          slug: s.slug || '',
           name: s.name || '',
           description: s.description || '',
           logo_url: s.logo_url || '',
@@ -136,15 +137,17 @@ export default function VendorSettings() {
         </div>
       )}
 
-      <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
-        <p className="font-semibold text-white">Aprobacion y comision</p>
-        <p className="mt-1">
-          Tu tienda queda pendiente hasta que el administrador la apruebe. Mientras este pendiente, tus productos se guardan pero no aparecen en el catalogo publico.
-        </p>
-        <p className="mt-1">
-          Kingsley retiene una comision del 10% sobre el subtotal de productos de cada orden; el resto se calcula como monto a liquidar al vendedor.
-        </p>
-      </div>
+      {store.slug !== 'kingsley-caps-oficial' && (
+        <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-gold-light">
+          <p className="font-semibold text-white">Aprobacion y comision</p>
+          <p className="mt-1">
+            Tu tienda queda pendiente hasta que el administrador la apruebe. Mientras este pendiente, tus productos se guardan pero no aparecen en el catalogo publico.
+          </p>
+          <p className="mt-1">
+            Kingsley retiene una comision del 10% sobre el subtotal de productos de cada orden; el resto se calcula como monto a liquidar al vendedor.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Store info */}

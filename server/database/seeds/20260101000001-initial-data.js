@@ -11,10 +11,13 @@ const CUSTOMER2_ID = 'b0000000-0000-0000-0000-000000000102';
 
 const VENDORS = [
   {
-    id: 'b0000000-0000-0000-0000-000000000201',
+    // Official store is owned by the superadmin (the brand itself).
+    // No separate "vendor" user is created for this entry.
+    id: SUPERADMIN_ID,
+    isOfficial: true,
     storeId: 'a0000000-0000-0000-0000-000000000201',
-    email: 'vendedor.kingsley@kingsley.com',
-    name: 'Andrea Kingsley',
+    email: 'admin@kingsley.com',
+    name: 'Super Administrador',
     store: 'Kingsley Caps Oficial',
     slug: 'kingsley-caps-oficial',
     description: 'Coleccion oficial Kingsley Caps con gorras premium y boinas de la marca.',
@@ -205,7 +208,7 @@ module.exports = {
         created_at: now(),
         updated_at: now(),
       },
-      ...VENDORS.map((vendor) => ({
+      ...VENDORS.filter((v) => !v.isOfficial).map((vendor) => ({
         id: vendor.id,
         email: vendor.email,
         password_hash: passwordHash,

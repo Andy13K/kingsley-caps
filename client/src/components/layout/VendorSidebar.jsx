@@ -62,7 +62,7 @@ export default function VendorSidebar({ onClose }) {
   };
 
   return (
-    <aside className="flex flex-col h-full bg-charcoal-900 dark:bg-charcoal-950 w-64 min-h-screen">
+    <aside className="flex flex-col bg-charcoal-900 dark:bg-charcoal-950 w-64 h-screen overflow-y-auto">
       <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md bg-gold flex items-center justify-center font-black text-white text-xs">KC</div>
@@ -75,6 +75,19 @@ export default function VendorSidebar({ onClose }) {
             </svg>
           </button>
         )}
+      </div>
+
+      <div className="px-3 pt-4">
+        <NavLink
+          to="/"
+          onClick={onClose}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-gold/10 text-gold-light hover:bg-gold/20 border border-gold-light/30 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Volver al catálogo
+        </NavLink>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

@@ -4,7 +4,8 @@ const shippingService = require('../services/shippingService');
 const addTracking = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { trackingNumber, trackingCompany } = req.body;
-  const order = await shippingService.addTracking({ orderId, trackingNumber, trackingCompany, userId: req.user.id });
+  const trackingImage = req.file ? `/uploads/tracking/${req.file.filename}` : null;
+  const order = await shippingService.addTracking({ orderId, trackingNumber, trackingCompany, trackingImage, userId: req.user.id });
   res.json({ success: true, data: { order } });
 });
 

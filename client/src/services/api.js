@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:3001';
+// In production (Render) frontend and backend share the same origin → empty string = relative URLs.
+// In development set VITE_API_URL=http://127.0.0.1:3002 in client/.env.local
+const API_URL = import.meta.env.VITE_API_URL ?? '';
+const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? API_URL;
 
 export const authApi = axios.create({ baseURL: AUTH_URL });
 

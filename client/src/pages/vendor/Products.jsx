@@ -272,9 +272,11 @@ const Products = () => {
         </div>
       )}
 
-      <div className="rounded-xl border border-blue-400/25 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-        Comision marketplace: Kingsley retiene 10% sobre el subtotal de productos por cada venta. El resto queda como monto a liquidar al vendedor.
-      </div>
+      {store?.slug !== 'kingsley-caps-oficial' && (
+        <div className="rounded-xl border border-blue-400/25 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+          Comision marketplace: Kingsley retiene 10% sobre el subtotal de productos por cada venta. El resto queda como monto a liquidar al vendedor.
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-charcoal-900 rounded-xl border border-charcoal-100 dark:border-white/10 p-5 space-y-4 shadow-sm">
@@ -425,20 +427,20 @@ const Products = () => {
             <div className="space-y-2">
               {form.variants.map((variant, index) => (
                 <div key={variant.id || index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                  <label className="text-xs text-charcoal-500 dark:text-zinc-400 md:text-transparent">
-                    Talla
+                  <label className="text-xs text-charcoal-500 dark:text-zinc-400">
+                    <span className="md:hidden">Talla</span>
                     <input className="mt-1 w-full border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-sm text-charcoal-900 dark:text-white" value={variant.size} onChange={(e) => handleVariantChange(index, 'size', e.target.value)} />
                   </label>
-                  <label className="text-xs text-charcoal-500 dark:text-zinc-400 md:text-transparent">
-                    Color
+                  <label className="text-xs text-charcoal-500 dark:text-zinc-400">
+                    <span className="md:hidden">Color</span>
                     <input className="mt-1 w-full border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-sm text-charcoal-900 dark:text-white" value={variant.color} onChange={(e) => handleVariantChange(index, 'color', e.target.value)} />
                   </label>
-                  <label className="text-xs text-charcoal-500 dark:text-zinc-400 md:text-transparent">
-                    SKU correlativo
+                  <label className="text-xs text-charcoal-500 dark:text-zinc-400">
+                    <span className="md:hidden">SKU correlativo</span>
                     <input required className="mt-1 w-full border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-sm text-charcoal-900 dark:text-white" value={variant.sku} onChange={(e) => handleVariantChange(index, 'sku', e.target.value)} />
                   </label>
-                  <label className="text-xs text-charcoal-500 dark:text-zinc-400 md:text-transparent">
-                    Cantidad en stock
+                  <label className="text-xs text-charcoal-500 dark:text-zinc-400">
+                    <span className="md:hidden">Cantidad en stock</span>
                     <input type="number" min="0" className="mt-1 w-full border border-charcoal-200 dark:border-white/10 bg-zinc-50 dark:bg-charcoal-800 rounded-lg p-2 text-sm text-charcoal-900 dark:text-white" value={variant.stock} onChange={(e) => handleVariantChange(index, 'stock', e.target.value)} />
                   </label>
                 </div>

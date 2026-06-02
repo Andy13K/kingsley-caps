@@ -6,11 +6,11 @@ const { listVariants, getVariantStock, adjustStock, getAlerts, getMovements, get
 
 const router = Router();
 
-router.get('/variants', authenticate, authorize('vendor', 'staff'), listVariants);
-router.get('/variants/:variantId', authenticate, authorize('vendor', 'staff'), getVariantStock);
-router.put('/variants/:variantId/stock', authenticate, authorize('vendor', 'staff'), validate(adjustStockSchema), adjustStock);
-router.get('/alerts', authenticate, authorize('vendor'), getAlerts);
-router.get('/movements', authenticate, authorize('vendor'), validate(movementFiltersSchema, 'query'), getMovements);
+router.get('/variants', authenticate, authorize('vendor', 'staff', 'superadmin'), listVariants);
+router.get('/variants/:variantId', authenticate, authorize('vendor', 'staff', 'superadmin'), getVariantStock);
+router.put('/variants/:variantId/stock', authenticate, authorize('vendor', 'staff', 'superadmin'), validate(adjustStockSchema), adjustStock);
+router.get('/alerts', authenticate, authorize('vendor', 'superadmin'), getAlerts);
+router.get('/movements', authenticate, authorize('vendor', 'superadmin'), validate(movementFiltersSchema, 'query'), getMovements);
 
 router.get('/demand-predictions', authenticate, authorize('vendor', 'staff', 'superadmin'), getDemandPredictions);
 

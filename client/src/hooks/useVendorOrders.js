@@ -46,15 +46,18 @@ export default function useVendorOrders() {
     return data;
   }, []);
 
-  const addTracking = useCallback(async (orderId, trackingData) => {
-    const { data } = await api.put(`/shipping/orders/${orderId}/tracking`, trackingData);
+  const addTracking = useCallback(async (orderId, formData) => {
+    const isFormData = formData instanceof FormData;
+    const { data } = await api.put(`/shipping/orders/${orderId}/tracking`, formData, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    });
+    const trackingNumber = isFormData ? formData.get('trackingNumber') : formData.trackingNumber;
+    const trackingCompany = isFormData ? formData.get('trackingCompany') : formData.trackingCompany;
+    const trackingImage = data?.data?.order?.tracking_image ?? null;
     setOrders((prev) => prev.map((o) => (o.id === orderId ? {
       ...o,
       status: 'shipped',
-      tracking: {
-        tracking_number: trackingData.trackingNumber,
-        carrier: trackingData.trackingCompany,
-      },
+      tracking: { tracking_number: trackingNumber, carrier: trackingCompany, tracking_image: trackingImage },
     } : o)));
     return data;
   }, []);

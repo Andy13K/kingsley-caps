@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <CartProvider>
             <App />
             <Toaster
-              position="top-right"
+              position="bottom-right"
               toastOptions={{
                 duration: 4000,
                 className: 'dark:bg-charcoal-900 dark:text-zinc-50 dark:border-white/10',

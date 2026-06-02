@@ -197,7 +197,7 @@ function ProductDetailContent() {
         </div>
 
         <div className="mt-16 py-12 border-t border-charcoal-100 dark:border-white/10">
-          <VirtualTryOn productId={product.id} productName={product.name} />
+          <VirtualTryOn productId={product.id} productName={product.name} productImages={images} />
         </div>
       </div>
     </div>

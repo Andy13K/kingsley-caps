@@ -25,13 +25,13 @@ router.get('/:id', orderController.getById);
 
 router.put(
   '/:id/status',
-  authorize('vendor', 'staff'),
+  authorize('vendor', 'staff', 'superadmin'),
   validate(updateStatusSchema),
   orderController.updateStatus
 );
 router.put(
   '/:id/tracking',
-  authorize('vendor', 'staff'),
+  authorize('vendor', 'staff', 'superadmin'),
   validate(trackingSchema),
   orderController.setTracking
 );

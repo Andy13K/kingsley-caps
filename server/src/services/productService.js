@@ -8,6 +8,16 @@ const {
 
 const VARIANT_INCLUDE = { model: ProductVariant, as: 'variants' };
 
+const OFFICIAL_STORE_SLUG = 'kingsley-caps-oficial';
+
+const resolveStoreForUser = async ({ vendorId, userRole }) => {
+  if (userRole === 'superadmin') {
+    const officialStore = await Store.findOne({ where: { slug: OFFICIAL_STORE_SLUG } });
+    if (officialStore) { return officialStore; }
+  }
+  return Store.findOne({ where: { vendor_id: vendorId } });
+};
+
 const toProductPayload = (payload = {}) => ({
   ...(payload.name !== undefined ? { name: payload.name } : {}),
   ...(payload.description !== undefined ? { description: payload.description } : {}),
@@ -88,8 +98,8 @@ const list = async (filters) => {
   };
 };
 
-const listForVendor = async ({ vendorId, filters = {} }) => {
-  const store = await Store.findOne({ where: { vendor_id: vendorId } });
+const listForVendor = async ({ vendorId, userRole, filters = {} }) => {
+  const store = await resolveStoreForUser({ vendorId, userRole });
   if (!store) {
     throw new NotFoundError('Tienda');
   }
@@ -129,11 +139,12 @@ const findById = async (id) => {
   return product;
 };
 
-const assertStoreOwner = async (storeId, userId) => {
+const assertStoreOwner = async (storeId, userId, userRole) => {
   const store = await Store.findByPk(storeId);
   if (!store) {
     throw new NotFoundError('Tienda');
   }
+  if (userRole === 'superadmin') { return store; }
   if (store.vendor_id !== userId) {
     throw new ForbiddenError('No eres propietario de esta tienda');
   }
@@ -151,8 +162,8 @@ const checkSkuUnique = async (skus, transaction, excludeProductId = null) => {
   }
 };
 
-const create = async ({ storeId, vendorId, payload }) => {
-  await assertStoreOwner(storeId, vendorId);
+const create = async ({ storeId, vendorId, userRole, payload }) => {
+  await assertStoreOwner(storeId, vendorId, userRole);
 
   return sequelize.transaction(async (t) => {
     const skus = (payload.variants ?? []).map((v) => v.sku);
@@ -180,12 +191,12 @@ const create = async ({ storeId, vendorId, payload }) => {
   });
 };
 
-const update = async ({ id, vendorId, payload }) => {
+const update = async ({ id, vendorId, userRole, payload }) => {
   const product = await Product.findByPk(id);
   if (!product) {
     throw new NotFoundError('Producto');
   }
-  await assertStoreOwner(product.store_id, vendorId);
+  await assertStoreOwner(product.store_id, vendorId, userRole);
 
   return sequelize.transaction(async (t) => {
     await product.update(toProductPayload(payload), { transaction: t });
@@ -217,12 +228,12 @@ const update = async ({ id, vendorId, payload }) => {
   });
 };
 
-const archive = async ({ id, vendorId }) => {
+const archive = async ({ id, vendorId, userRole }) => {
   const product = await Product.findByPk(id);
   if (!product) {
     throw new NotFoundError('Producto');
   }
-  await assertStoreOwner(product.store_id, vendorId);
+  await assertStoreOwner(product.store_id, vendorId, userRole);
 
   await product.update({ status: 'archived' });
   return product;

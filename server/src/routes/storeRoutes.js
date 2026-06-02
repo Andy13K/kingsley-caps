@@ -15,8 +15,8 @@ router.get('/slug/:slug', storeController.getPublicBySlug);
 router.use(authenticate);
 
 router.post('/', authorize('vendor'), validate(createStoreSchema), storeController.create);
-router.get('/my', authorize('vendor', 'staff'), storeController.getMine);
-router.put('/my', authorize('vendor'), validate(updateStoreSchema), storeController.updateMine);
+router.get('/my', authorize('vendor', 'staff', 'superadmin'), storeController.getMine);
+router.put('/my', authorize('vendor', 'superadmin'), validate(updateStoreSchema), storeController.updateMine);
 router.put('/:id', authorize('vendor'), validate(updateStoreSchema), storeController.update);
 router.put(
   '/:id/crypto-config',

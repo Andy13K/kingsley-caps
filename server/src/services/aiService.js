@@ -8,6 +8,7 @@ const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
 const GEMINI_VISION_MODEL = 'gemini-2.5-flash';
 const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
 const HF_IMAGE_ENDPOINT = 'https://router.huggingface.co/fal-ai/fal-ai/flux/schnell';
+const POLLINATIONS_ENDPOINT = 'https://image.pollinations.ai/prompt';
 
 const analyzeTransaction = async ({ orderId, amount, customerId, txHash, metadata = {} }) => {
   try {
@@ -63,9 +64,9 @@ const analyzeInventory = async ({ storeId, variantId, currentStock, lowStockThre
 
 const detectMimeType = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.png') return 'image/png';
-  if (ext === '.webp') return 'image/webp';
-  if (ext === '.gif') return 'image/gif';
+  if (ext === '.png') { return 'image/png'; }
+  if (ext === '.webp') { return 'image/webp'; }
+  if (ext === '.gif') { return 'image/gif'; }
   return 'image/jpeg';
 };
 
@@ -104,34 +105,99 @@ Respond ONLY with the prompt text. No quotes, no markdown, no labels, no explana
 };
 
 const generateImageWithFlux = async (prompt) => {
-  const { data } = await axios.post(
-    HF_IMAGE_ENDPOINT,
-    { prompt, image_size: 'landscape_4_3', num_inference_steps: 4 },
-    {
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 90000,
-    }
-  );
-  return data?.images?.[0]?.url || null;
+  // Try HuggingFace router first (paid - fal.ai)
+  try {
+    const { data } = await axios.post(
+      HF_IMAGE_ENDPOINT,
+      { prompt, image_size: 'landscape_4_3', num_inference_steps: 4 },
+      {
+        headers: {
+          Authorization: `Bearer ${HF_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 90000,
+      }
+    );
+    const url = data?.images?.[0]?.url;
+    if (url) { return url; }
+  } catch (err) {
+    logger.warn('HF FLUX failed, falling back to Pollinations', { status: err.response?.status });
+  }
+
+  // Fallback: Pollinations.ai (free, no auth, FLUX-based)
+  const encoded = encodeURIComponent(prompt);
+  const seed = Math.floor(Math.random() * 1000000);
+  return `${POLLINATIONS_ENDPOINT}/${encoded}?width=1024&height=768&model=flux&nologo=true&seed=${seed}`;
 };
 
 const downloadImageToBuffer = async (imageUrl) => {
   const { data } = await axios.get(imageUrl, {
     responseType: 'arraybuffer',
-    timeout: 30000,
+    timeout: 90000,
   });
   return Buffer.from(data);
 };
 
+const generateTryOnWithGeminiImage = async ({
+  userPhotoBase64,
+  capImageBase64,
+  userPhotoMime,
+  capImageMime,
+  capName,
+}) => {
+  const model = 'gemini-2.5-flash-image';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { inline_data: { mime_type: userPhotoMime, data: userPhotoBase64 } },
+          { inline_data: { mime_type: capImageMime, data: capImageBase64 } },
+          {
+            text: `Edit the FIRST image: place the baseball cap shown in the SECOND image onto the person's head.
+
+CRITICAL REQUIREMENTS:
+- Keep the person's face, skin tone, facial features, hair, beard, expression, body, clothing, and background IDENTICAL to the first image. Do not change them in any way.
+- The result must look like the same person, photographed in the same place, just now wearing the cap.
+- Use the EXACT cap from the second image: preserve its color palette, pattern, fabric, logo/badge, brim shape, and overall style.
+- Position the cap naturally on top of the head, with realistic lighting, shadows and perspective matching the first photo.
+- Output a single photorealistic image. Do not add text, watermarks, frames or extra elements.
+
+Cap name (for context only): "${capName}".`,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      responseModalities: ['IMAGE'],
+    },
+  };
+
+  const { data } = await axios.post(url, payload, {
+    timeout: 120000,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  for (const part of parts) {
+    const inline = part.inline_data || part.inlineData;
+    if (inline?.data && (inline.mime_type || inline.mimeType || '').startsWith('image/')) {
+      return {
+        imageBase64: inline.data,
+        mimeType: inline.mime_type || inline.mimeType,
+      };
+    }
+  }
+  return null;
+};
+
 const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => {
   try {
-    if (!HF_TOKEN) {
+    if (!GEMINI_API_KEY) {
       return {
         success: false,
-        message: 'Falta configurar HUGGINGFACE_API_TOKEN en el servidor.',
+        message: 'Falta configurar GOOGLE_GEMINI_API_KEY en el servidor.',
       };
     }
 
@@ -142,6 +208,8 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
     const userPhotoMime = detectMimeType(userPhotoPath);
     const capImageMime = detectMimeType(capImagePath);
 
+    // Step 1: Gemini 2.5 Flash (text, free) analyzes both photos and writes a detailed prompt
+    logger.info('[TRY-ON] Step 1 – Building prompt with Gemini Vision (free)', { capName });
     const prompt = await buildTryOnPrompt({
       userPhotoBase64,
       capImageBase64,
@@ -149,55 +217,38 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
       capImageMime,
       capName,
     });
+    logger.info('[TRY-ON] Prompt generated', { prompt: prompt.substring(0, 150) });
 
-    logger.info('Try-on prompt built', { promptLength: prompt.length, preview: prompt.substring(0, 200) });
+    // Step 2: Pollinations.ai (free, FLUX) generates the image from the prompt
+    logger.info('[TRY-ON] Step 2 – Generating image with Pollinations (free)');
+    const imageUrl = await generateImageWithFlux(prompt);
+    logger.info('[TRY-ON] Image URL from Pollinations', { imageUrl: imageUrl.substring(0, 120) });
 
-    if (!prompt) {
-      return {
-        success: false,
-        message: 'No pudimos describir las imágenes. Intenta con una foto más clara.',
-      };
-    }
+    // Step 3: Download and save the generated image
+    const imageBuffer = await downloadImageToBuffer(imageUrl);
 
-    const fluxImageUrl = await generateImageWithFlux(prompt);
-    logger.info('Flux image URL received', { hasUrl: Boolean(fluxImageUrl) });
-
-    if (!fluxImageUrl) {
-      return {
-        success: false,
-        message: 'La IA no pudo generar la imagen. Intenta de nuevo en unos segundos.',
-      };
-    }
-
-    const imageBuffer = await downloadImageToBuffer(fluxImageUrl);
-
-    const tryOnDir = path.resolve(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      'client',
-      'public',
-      'uploads',
-      'products',
-      'try-on'
-    );
+    const uploadsBase = process.env.UPLOADS_DIR
+      ? path.resolve(process.env.UPLOADS_DIR)
+      : path.resolve(__dirname, '..', '..', '..', 'client', 'public', 'uploads');
+    const tryOnDir = path.join(uploadsBase, 'products', 'try-on');
     fs.mkdirSync(tryOnDir, { recursive: true });
 
     const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.jpg`;
     fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
 
+    logger.info('[TRY-ON] Image saved', { filename, bytes: imageBuffer.length });
+
     return {
       success: true,
       generatedImageUrl: `/uploads/products/try-on/${filename}`,
-      description: `Así te imaginamos con la ${capName}. La IA generó esta visualización a partir de tu foto y la gorra.`,
+      description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
       message: '¡Imagen generada!',
     };
   } catch (err) {
     logger.error('Virtual try-on analysis failed', {
       message: err.message,
       status: err.response?.status,
-      apiError: err.response?.data ? String(err.response.data).substring(0, 500) : undefined,
+      apiError: err.response?.data ? JSON.stringify(err.response.data).substring(0, 800) : undefined,
     });
     return {
       success: false,

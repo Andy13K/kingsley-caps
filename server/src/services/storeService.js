@@ -19,10 +19,13 @@ const generateUniqueSlug = async (name) => {
   return slug;
 };
 
-const assertOwner = (store, userId) => {
+const OFFICIAL_STORE_SLUG = 'kingsley-caps-oficial';
+
+const assertOwner = (store, userId, userRole) => {
   if (!store) {
     throw new NotFoundError('Tienda');
   }
+  if (userRole === 'superadmin') { return; }
   if (store.vendor_id !== userId) {
     throw new ForbiddenError('Solo el propietario puede modificar esta tienda');
   }
@@ -74,7 +77,11 @@ const create = async ({ vendorId, name, description, logoUrl, logo_url }) => {
   return store;
 };
 
-const findMine = async (vendorId) => {
+const findMine = async (vendorId, userRole) => {
+  if (userRole === 'superadmin') {
+    const officialStore = await Store.findOne({ where: { slug: OFFICIAL_STORE_SLUG } });
+    if (officialStore) { return officialStore; }
+  }
   const store = await Store.findOne({ where: { vendor_id: vendorId } });
   if (!store) {
     throw new NotFoundError('Tienda');
@@ -109,9 +116,9 @@ const findPublicBySlug = async (slug) => {
   return store;
 };
 
-const update = async ({ id, vendorId, payload }) => {
+const update = async ({ id, vendorId, userRole, payload }) => {
   const store = await Store.findByPk(id);
-  assertOwner(store, vendorId);
+  assertOwner(store, vendorId, userRole);
 
   if (payload.name && payload.name !== store.name) {
     const conflict = await Store.findOne({
