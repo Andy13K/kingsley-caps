@@ -3,7 +3,7 @@ const AppError = require('../utils/AppError');
 const notificationService = require('./notificationService');
 const logger = require('../utils/logger');
 
-const addTracking = async ({ orderId, trackingNumber, trackingCompany, userId }) => {
+const addTracking = async ({ orderId, trackingNumber, trackingCompany, trackingImage, userId }) => {
   const order = await Order.findOne({
     where: { id: orderId },
     include: [{ model: Store }],
@@ -12,8 +12,13 @@ const addTracking = async ({ orderId, trackingNumber, trackingCompany, userId })
   if (!order) {throw new AppError('Orden no encontrada', 404);}
   if (order.Store.vendor_id !== userId) {throw new AppError('No tienes acceso a esta orden', 403);}
 
-  const updateData = { tracking_number: trackingNumber, tracking_company: trackingCompany, shipped_at: new Date() };
-  if (['preparing', 'packed'].includes(order.status)) {updateData.status = 'shipped';}
+  const updateData = {
+    tracking_number: trackingNumber,
+    tracking_company: trackingCompany,
+    shipped_at: new Date(),
+  };
+  if (trackingImage) { updateData.tracking_image = trackingImage; }
+  if (['preparing', 'packed'].includes(order.status)) { updateData.status = 'shipped'; }
 
   await order.update(updateData);
 
@@ -21,10 +26,10 @@ const addTracking = async ({ orderId, trackingNumber, trackingCompany, userId })
     await notificationService.createNotification({
       userId: order.customer_id,
       storeId: order.store_id,
-      type: 'order_shipped',
+      type: 'order_status',
       title: 'Tu pedido ha sido enviado',
       message: `Tu pedido ha sido enviado. Guía: ${trackingNumber} (${trackingCompany})`,
-      metadata: { orderId, trackingNumber, trackingCompany },
+      metadata: { orderId, trackingNumber, trackingCompany, newStatus: 'shipped' },
     });
   } catch (err) {
     logger.error('Failed to create shipping notification', { message: err.message });
@@ -50,6 +55,7 @@ const getTrackingInfo = async ({ orderId, userId }) => {
     status: order.status,
     trackingNumber: order.tracking_number,
     trackingCompany: order.tracking_company,
+    trackingImage: order.tracking_image,
     shippedAt: order.shipped_at,
     deliveredAt: order.delivered_at,
   };

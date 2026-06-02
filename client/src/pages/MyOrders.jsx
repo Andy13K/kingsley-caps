@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useOrders } from '../hooks/useOrders';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import Badge from '../components/ui/Badge';
@@ -121,11 +122,26 @@ function OrderDetailModal({ order, onClose }) {
         </div>
 
         {order.trackingNumber && (
-          <div className="bg-charcoal-50 dark:bg-charcoal-900 border border-charcoal-100 dark:border-white/10 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gold dark:text-gold-light uppercase tracking-widest mb-1">Número de guía</p>
-            <p className="font-mono font-bold text-charcoal-950 dark:text-white">{order.trackingNumber}</p>
-            {order.trackingCompany && (
-              <p className="text-xs text-charcoal-600 dark:text-zinc-400 mt-0.5">{order.trackingCompany}</p>
+          <div className="bg-charcoal-50 dark:bg-charcoal-900 border border-charcoal-100 dark:border-white/10 rounded-xl p-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-gold dark:text-gold-light uppercase tracking-widest mb-1">Número de guía</p>
+              <p className="font-mono font-bold text-charcoal-950 dark:text-white">{order.trackingNumber}</p>
+              {order.trackingCompany && (
+                <p className="text-xs text-charcoal-600 dark:text-zinc-400 mt-0.5">{order.trackingCompany}</p>
+              )}
+            </div>
+            {order.trackingImage && (
+              <div>
+                <p className="text-xs font-semibold text-charcoal-500 dark:text-zinc-400 uppercase tracking-widest mb-2">Imagen de guía</p>
+                <img
+                  src={order.trackingImage}
+                  alt="Guía de envío"
+                  className="w-full rounded-lg border border-charcoal-200 dark:border-white/10 object-contain max-h-64 cursor-pointer"
+                  onClick={() => window.open(order.trackingImage, '_blank')}
+                  title="Clic para ver en tamaño completo"
+                />
+                <p className="text-[11px] text-charcoal-400 dark:text-zinc-500 mt-1 text-center">Clic para ver en tamaño completo</p>
+              </div>
             )}
           </div>
         )}
@@ -147,8 +163,27 @@ function OrderDetailModal({ order, onClose }) {
 export default function MyOrders() {
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [highlightedId, setHighlightedId] = useState(null);
   const { orders, total, loading, error } = useOrders(page, LIMIT);
   const totalPages = Math.ceil(total / LIMIT);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightRef = useRef(null);
+
+  // Auto-open order from notification link (?orderId=xxx)
+  useEffect(() => {
+    const targetId = searchParams.get('orderId');
+    if (!targetId || loading || orders.length === 0) return;
+    const match = orders.find((o) => o.id === targetId);
+    if (match) {
+      setSelectedOrder(match);
+      setHighlightedId(targetId);
+      setSearchParams({}, { replace: true });
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      setTimeout(() => setHighlightedId(null), 3000);
+    }
+  }, [searchParams, orders, loading]);
 
   return (
     <div className="min-h-screen bg-cream dark:bg-charcoal-950">
@@ -189,14 +224,19 @@ export default function MyOrders() {
             <div className="flex flex-col gap-3">
               {orders.map((order, i) => {
                 const status = STATUS[order.status] ?? { label: order.status, variant: 'gray' };
+                const isHighlighted = highlightedId === order.id;
                 return (
                   <button
                     key={order.id}
+                    ref={isHighlighted ? highlightRef : null}
                     onClick={() => setSelectedOrder(order)}
                     aria-label={`Ver detalle de orden ${order.id.slice(-8).toUpperCase()}`}
-                    className="w-full text-left bg-white dark:bg-charcoal-900 border border-charcoal-100 dark:border-white/10 rounded-2xl p-5
-                      hover:border-blue-dark/30 dark:hover:border-blue/30 hover:shadow-lg hover:shadow-charcoal-950/5 hover:-translate-y-0.5
-                      transition-all duration-200 animate-fade-up"
+                    className={`w-full text-left rounded-2xl p-5 transition-all duration-200 animate-fade-up
+                      hover:shadow-lg hover:shadow-charcoal-950/5 hover:-translate-y-0.5
+                      ${isHighlighted
+                        ? 'bg-gold/10 dark:bg-gold/10 border-2 border-gold dark:border-gold-light shadow-lg shadow-gold/20 scale-[1.01]'
+                        : 'bg-white dark:bg-charcoal-900 border border-charcoal-100 dark:border-white/10 hover:border-blue-dark/30 dark:hover:border-blue/30'
+                      }`}
                     style={{ animationDelay: `${i * 50}ms` }}
                   >
                     <div className="flex items-start justify-between gap-4 flex-wrap">

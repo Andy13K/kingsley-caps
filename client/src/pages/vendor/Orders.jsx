@@ -35,6 +35,8 @@ export default function VendorOrders() {
   const [page, setPage] = useState(1);
   const [trackingModal, setTrackingModal] = useState(null);
   const [trackingForm, setTrackingForm] = useState({ tracking_number: '', carrier: '', estimated_delivery: '' });
+  const [trackingImageFile, setTrackingImageFile] = useState(null);
+  const [trackingImagePreview, setTrackingImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { fetchOrders({ ...filters, page, limit: 20 }); }, [filters, page, fetchOrders]);
@@ -48,6 +50,13 @@ export default function VendorOrders() {
     }
   };
 
+  const handleTrackingImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTrackingImageFile(file);
+    setTrackingImagePreview(URL.createObjectURL(file));
+  };
+
   const handleTracking = async (e) => {
     e.preventDefault();
     if (!trackingForm.tracking_number.trim() || !trackingForm.carrier.trim()) {
@@ -56,12 +65,15 @@ export default function VendorOrders() {
     }
     setSubmitting(true);
     try {
-      await addTracking(trackingModal.id, {
-        trackingNumber: trackingForm.tracking_number,
-        trackingCompany: trackingForm.carrier,
-      });
+      const formData = new FormData();
+      formData.append('trackingNumber', trackingForm.tracking_number);
+      formData.append('trackingCompany', trackingForm.carrier);
+      if (trackingImageFile) { formData.append('trackingImage', trackingImageFile); }
+      await addTracking(trackingModal.id, formData);
       toast.success('Información de envío guardada');
       setTrackingModal(null);
+      setTrackingImageFile(null);
+      setTrackingImagePreview(null);
     } catch {
       toast.error('Error al guardar tracking');
     } finally {
@@ -228,16 +240,19 @@ export default function VendorOrders() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-charcoal-700 dark:text-zinc-300 mb-1">Fecha estimada de entrega</label>
+                    <label className="block text-sm font-medium text-charcoal-700 dark:text-zinc-300 mb-1">Imagen de la guía de envío</label>
                     <input
-                      type="date"
-                      value={trackingForm.estimated_delivery}
-                      onChange={(e) => setTrackingForm((f) => ({ ...f, estimated_delivery: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                      onChange={handleTrackingImageChange}
+                      className="w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-charcoal-800 border border-charcoal-200 dark:border-white/10 rounded-lg text-charcoal-900 dark:text-white file:mr-3 file:border-0 file:rounded-md file:bg-gold file:px-3 file:py-1 file:text-xs file:font-semibold file:text-charcoal-950 focus:outline-none focus:ring-2 focus:ring-gold/40"
                     />
+                    {trackingImagePreview && (
+                      <img src={trackingImagePreview} alt="Vista previa de la guía" className="mt-2 w-full rounded-lg border border-charcoal-200 dark:border-white/10 object-contain max-h-40" />
+                    )}
                   </div>
                   <div className="flex gap-3 pt-1">
-                    <button type="button" onClick={() => setTrackingModal(null)} className="flex-1 py-2 text-sm font-medium bg-zinc-100 dark:bg-charcoal-800 text-charcoal-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-charcoal-700 transition-colors">
+                    <button type="button" onClick={() => { setTrackingModal(null); setTrackingImageFile(null); setTrackingImagePreview(null); }} className="flex-1 py-2 text-sm font-medium bg-zinc-100 dark:bg-charcoal-800 text-charcoal-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-charcoal-700 transition-colors">
                       Cancelar
                     </button>
                     <button type="submit" disabled={submitting} className="flex-1 py-2 text-sm font-semibold bg-gold hover:bg-gold-dark text-white dark:bg-gold-light dark:text-charcoal-950 dark:hover:bg-gold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2">

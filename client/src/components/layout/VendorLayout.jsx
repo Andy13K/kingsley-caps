@@ -6,7 +6,7 @@ export default function VendorLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-charcoal-950">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-charcoal-950">
       {/* Desktop sidebar */}
       <div className="hidden md:flex md:flex-shrink-0">
         <VendorSidebar />
@@ -22,7 +22,7 @@ export default function VendorLayout() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile topbar */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-charcoal-900 border-b border-white/10">
           <button
@@ -40,7 +40,7 @@ export default function VendorLayout() {
           </div>
         </div>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -13,11 +13,11 @@ const {
 } = require('../utils/validators/productValidator');
 
 router.get('/', validate(listProductsSchema, 'query'), productController.list);
-router.get('/vendor/mine', authenticate, authorize('vendor'), productController.listMine);
+router.get('/vendor/mine', authenticate, authorize('vendor', 'superadmin'), productController.listMine);
 router.post(
   '/suggest-price',
   authenticate,
-  authorize(['vendor', 'superadmin']),
+  authorize('vendor', 'superadmin'),
   suggestProductPrice
 );
 
@@ -26,7 +26,7 @@ router.get('/:id', productController.getById);
 router.post(
   '/images',
   authenticate,
-  authorize('vendor'),
+  authorize('vendor', 'superadmin'),
   uploadProductImages.array('images', 5),
   productController.uploadImages
 );
@@ -35,7 +35,6 @@ router.post(
   '/:productId/try-on',
   uploadProductImages.fields([
     { name: 'userPhoto', maxCount: 1 },
-    { name: 'capImage', maxCount: 1 },
   ]),
   productController.tryOn
 );
@@ -43,17 +42,17 @@ router.post(
 router.post(
   '/',
   authenticate,
-  authorize('vendor'),
+  authorize('vendor', 'superadmin'),
   validate(createProductSchema),
   productController.create
 );
 router.put(
   '/:id',
   authenticate,
-  authorize('vendor'),
+  authorize('vendor', 'superadmin'),
   validate(updateProductSchema),
   productController.update
 );
-router.delete('/:id', authenticate, authorize('vendor'), productController.archive);
+router.delete('/:id', authenticate, authorize('vendor', 'superadmin'), productController.archive);
 
 module.exports = router;

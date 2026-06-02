@@ -166,11 +166,11 @@ const getDemandData = async (storeId) => {
     const daysAgo = Math.floor((now - new Date(order.created_at).getTime()) / (24 * 60 * 60 * 1000));
     // daysAgo=0 → today → arrayIndex=29; daysAgo=29 → arrayIndex=0
     const arrayIndex = 29 - daysAgo;
-    if (arrayIndex < 0 || arrayIndex > 29) continue;
+    if (arrayIndex < 0 || arrayIndex > 29) { continue; }
 
     for (const item of order.items) {
       const productId = item.ProductVariant?.product_id;
-      if (!productId || !productMap.has(productId)) continue;
+      if (!productId || !productMap.has(productId)) { continue; }
       productMap.get(productId).daily_sales[arrayIndex] += item.quantity;
     }
   }

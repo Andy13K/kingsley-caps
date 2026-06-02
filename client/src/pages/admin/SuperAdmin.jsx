@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAdmin from '../../hooks/useAdmin';
 import Spinner from '../../components/ui/Spinner';
@@ -64,6 +65,16 @@ export default function SuperAdmin() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-charcoal-950 p-6 space-y-8">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gold/10 text-gold dark:text-gold-light hover:bg-gold/20 border border-gold-light/30 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Volver al catálogo
+      </Link>
+
       <div>
         <h1 className="text-2xl font-bold text-charcoal-950 dark:text-white">Panel SuperAdmin</h1>
         <p className="text-sm text-charcoal-500 dark:text-zinc-400 mt-1">Vista global de la plataforma Kingsley Caps</p>

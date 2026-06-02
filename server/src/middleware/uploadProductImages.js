@@ -3,7 +3,9 @@ const path = require('path');
 const multer = require('multer');
 const AppError = require('../utils/AppError');
 
-const uploadDir = path.resolve(__dirname, '..', '..', '..', 'client', 'public', 'uploads', 'products');
+const uploadDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR, 'products')
+  : path.resolve(__dirname, '..', '..', '..', 'client', 'public', 'uploads', 'products');
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);

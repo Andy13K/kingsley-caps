@@ -11,6 +11,7 @@ const normalizeOrder = (order) => ({
   shippingAddress: order.shippingAddress ?? order.shipping_address ?? {},
   trackingNumber: order.trackingNumber ?? order.tracking_number,
   trackingCompany: order.trackingCompany ?? order.tracking_company,
+  trackingImage: order.trackingImage ?? order.tracking_image ?? null,
   items: (order.items ?? []).map((item) => ({
     ...item,
     productName: item.productName ?? item.product_name,
