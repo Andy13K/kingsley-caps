@@ -7,8 +7,10 @@ const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8000';
 const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
 const GEMINI_VISION_MODEL = 'gemini-2.5-flash';
 const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
-const HF_IMAGE_ENDPOINT = 'https://router.huggingface.co/fal-ai/fal-ai/flux/schnell';
-const POLLINATIONS_ENDPOINT = 'https://image.pollinations.ai/prompt';
+// Free "hf-inference" provider. Returns RAW image bytes (not a JSON {images:[{url}]}).
+// Override the model with HF_IMAGE_MODEL if FLUX.1-schnell ever stops being served for free.
+const HF_IMAGE_MODEL = process.env.HF_IMAGE_MODEL || 'black-forest-labs/FLUX.1-schnell';
+const HF_IMAGE_ENDPOINT = `https://router.huggingface.co/hf-inference/models/${HF_IMAGE_MODEL}`;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -124,38 +126,73 @@ Respond ONLY with the prompt text. No quotes, no markdown, no labels, no explana
   return parts.map((p) => p.text || '').join('').trim();
 };
 
+// Free HuggingFace "hf-inference" text-to-image call. Returns { imageBuffer, mimeType }.
+// FLUX.1-schnell is distilled, so 4 steps is optimal and it ignores guidance_scale.
 const generateImageWithFlux = async (prompt) => {
-  // Try HuggingFace router first (paid - fal.ai)
-  try {
-    const { data } = await axios.post(
+  if (!HF_TOKEN) {
+    throw new Error('HUGGINGFACE_API_TOKEN no está configurado.');
+  }
+
+  const { data, headers } = await retryWithBackoff(
+    () => axios.post(
       HF_IMAGE_ENDPOINT,
-      { prompt, image_size: 'landscape_4_3', num_inference_steps: 4 },
+      {
+        inputs: prompt,
+        parameters: { width: 1024, height: 768, num_inference_steps: 4 },
+      },
       {
         headers: {
           Authorization: `Bearer ${HF_TOKEN}`,
           'Content-Type': 'application/json',
+          Accept: 'image/png',
         },
+        responseType: 'arraybuffer',
         timeout: 90000,
       }
-    );
-    const url = data?.images?.[0]?.url;
-    if (url) { return url; }
-  } catch (err) {
-    logger.warn('HF FLUX failed, falling back to Pollinations', { status: err.response?.status });
+    ),
+    // 503 = model cold-starting; retryWithBackoff already covers 429/500/503.
+    { maxRetries: 3, baseDelay: 4000, label: `HF FLUX (${HF_IMAGE_MODEL})` }
+  );
+
+  const buffer = Buffer.from(data);
+  const contentType = (headers?.['content-type'] || '').split(';')[0];
+
+  // On error HF can answer with a small JSON body even when we asked for image bytes.
+  if (!contentType.startsWith('image/') || buffer.length < 1024) {
+    let detail = '';
+    try { detail = buffer.toString('utf8').slice(0, 300); } catch (_) { /* binary, ignore */ }
+    throw new Error(`HF no devolvió una imagen válida (content-type: ${contentType || 'desconocido'}). ${detail}`);
   }
 
-  // Fallback: Pollinations.ai (free, no auth, FLUX-based)
-  const encoded = encodeURIComponent(prompt);
-  const seed = Math.floor(Math.random() * 1000000);
-  return `${POLLINATIONS_ENDPOINT}/${encoded}?width=1024&height=768&model=flux&nologo=true&seed=${seed}`;
+  return { imageBuffer: buffer, mimeType: contentType };
 };
 
-const downloadImageToBuffer = async (imageUrl) => {
-  const { data } = await axios.get(imageUrl, {
-    responseType: 'arraybuffer',
-    timeout: 90000,
+// Fallback pipeline used when Gemini image editing is rate-limited / unavailable.
+// IMPORTANT: FLUX is text-to-image only — it renders a NEW photorealistic person from a
+// description; it does NOT preserve the user's real face. We use Gemini Vision (which has
+// far more generous free limits than image generation) to describe the person + cap first.
+const generateTryOnWithFlux = async ({
+  userPhotoBase64,
+  capImageBase64,
+  userPhotoMime,
+  capImageMime,
+  capName,
+}) => {
+  logger.info('[TRY-ON] Fallback – building prompt with Gemini Vision');
+  const prompt = await buildTryOnPrompt({
+    userPhotoBase64,
+    capImageBase64,
+    userPhotoMime,
+    capImageMime,
+    capName,
   });
-  return Buffer.from(data);
+
+  if (!prompt) {
+    throw new Error('No se pudo construir el prompt para FLUX.');
+  }
+
+  logger.info('[TRY-ON] Fallback – generating image with HF FLUX', { promptLength: prompt.length });
+  return generateImageWithFlux(prompt);
 };
 
 const generateTryOnWithGeminiImage = async ({
@@ -253,8 +290,16 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
     const tryOnDir = path.join(uploadsBase, 'products', 'try-on');
     fs.mkdirSync(tryOnDir, { recursive: true });
 
-    // Strategy 1: Gemini native image generation (free, no external service needed)
-    logger.info('[TRY-ON] Step 1 – Trying Gemini native image generation', { capName });
+    const saveImage = (buffer, mimeType) => {
+      const ext = (mimeType || 'image/png').includes('png') ? 'png' : 'jpg';
+      const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.${ext}`;
+      fs.writeFileSync(path.join(tryOnDir, filename), buffer);
+      logger.info('[TRY-ON] Image saved', { filename, bytes: buffer.length });
+      return `/uploads/products/try-on/${filename}`;
+    };
+
+    // Strategy 1: Gemini native image EDITING — preserves the user's real face.
+    logger.info('[TRY-ON] Step 1 – Gemini image editing (face-preserving)', { capName });
     try {
       const geminiResult = await generateTryOnWithGeminiImage({
         userPhotoBase64,
@@ -265,29 +310,56 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
       });
 
       if (geminiResult && geminiResult.imageBase64) {
-        const ext = (geminiResult.mimeType || 'image/png').includes('png') ? 'png' : 'jpg';
-        const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.${ext}`;
-        const imageBuffer = Buffer.from(geminiResult.imageBase64, 'base64');
-        fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
-
-        logger.info('[TRY-ON] Gemini image saved', { filename, bytes: imageBuffer.length });
-
+        const url = saveImage(Buffer.from(geminiResult.imageBase64, 'base64'), geminiResult.mimeType);
         return {
           success: true,
-          generatedImageUrl: `/uploads/products/try-on/${filename}`,
-          description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
+          generatedImageUrl: url,
+          description: `Así luciría la ${capName} puesta. Imagen generada con IA sobre tu foto.`,
           message: '¡Imagen generada!',
         };
       }
-      logger.warn('[TRY-ON] Gemini image generation returned no image');
-      throw new Error('Los servidores de IA gratuitos están experimentando alta demanda. Por favor, intenta nuevamente en un par de minutos.');
+      logger.warn('[TRY-ON] Gemini returned no image — trying FLUX fallback');
     } catch (geminiErr) {
-      logger.warn('[TRY-ON] Gemini image generation failed', {
+      logger.warn('[TRY-ON] Gemini image editing failed — trying FLUX fallback', {
         message: geminiErr.message,
         status: geminiErr.response?.status,
       });
-      throw new Error('Los servidores de IA gratuitos están experimentando alta demanda. Por favor, intenta nuevamente en un par de minutos.');
     }
+
+    // Strategy 2 (fallback): HuggingFace FLUX text-to-image.
+    // Renders a photorealistic visualization from a description (does NOT keep the real face).
+    if (HF_TOKEN) {
+      logger.info('[TRY-ON] Step 2 – HuggingFace FLUX fallback');
+      try {
+        const fluxResult = await generateTryOnWithFlux({
+          userPhotoBase64,
+          capImageBase64,
+          userPhotoMime,
+          capImageMime,
+          capName,
+        });
+
+        if (fluxResult && fluxResult.imageBuffer) {
+          const url = saveImage(fluxResult.imageBuffer, fluxResult.mimeType);
+          return {
+            success: true,
+            generatedImageUrl: url,
+            description: `Representación con IA de cómo combina la ${capName} con tu estilo (el motor principal estaba con alta demanda).`,
+            message: '¡Imagen generada!',
+          };
+        }
+        logger.warn('[TRY-ON] FLUX fallback returned no image');
+      } catch (fluxErr) {
+        logger.warn('[TRY-ON] FLUX fallback failed', {
+          message: fluxErr.message,
+          status: fluxErr.response?.status,
+        });
+      }
+    } else {
+      logger.warn('[TRY-ON] HUGGINGFACE_API_TOKEN not set — skipping FLUX fallback');
+    }
+
+    throw new Error('Los servidores de IA gratuitos están experimentando alta demanda. Por favor, intenta nuevamente en un par de minutos.');
   } catch (err) {
     logger.error('Virtual try-on analysis failed', {
       message: err.message,
