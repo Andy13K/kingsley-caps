@@ -1,7 +1,6 @@
 node_modules/
-.env
 .env.local
-# .env.production SI se sube (no tiene secretos, solo URLs vacías)
+# .env y .env.production SI se suben (repo privado del equipo)
 *.log
 dist/
 build/
