@@ -29,7 +29,7 @@ const getCart = async ({ userId, storeId }) => {
     const carts = await Cart.findAll({
       where: { userId },
       include: [ITEM_INCLUDE],
-      order: [[{ model: CartItem, as: 'items' }, 'createdAt', 'ASC']],
+      order: [[{ model: CartItem, as: 'items' }, 'created_at', 'ASC']],
     });
     const items = carts.flatMap((cart) => cart.items || []);
     return { id: null, userId, storeId: null, items, ...computeTotals(items) };
@@ -38,7 +38,7 @@ const getCart = async ({ userId, storeId }) => {
   const cart = await Cart.findOne({
     where: { userId, storeId },
     include: [ITEM_INCLUDE],
-    order: [[{ model: CartItem, as: 'items' }, 'createdAt', 'ASC']],
+    order: [[{ model: CartItem, as: 'items' }, 'created_at', 'ASC']],
   });
 
   if (!cart) {
