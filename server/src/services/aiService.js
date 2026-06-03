@@ -208,8 +208,48 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
     const userPhotoMime = detectMimeType(userPhotoPath);
     const capImageMime = detectMimeType(capImagePath);
 
-    // Step 1: Gemini 2.5 Flash (text, free) analyzes both photos and writes a detailed prompt
-    logger.info('[TRY-ON] Step 1 – Building prompt with Gemini Vision (free)', { capName });
+    const uploadsBase = process.env.UPLOADS_DIR
+      ? path.resolve(process.env.UPLOADS_DIR)
+      : path.resolve(__dirname, '..', '..', '..', 'client', 'public', 'uploads');
+    const tryOnDir = path.join(uploadsBase, 'products', 'try-on');
+    fs.mkdirSync(tryOnDir, { recursive: true });
+
+    // Strategy 1: Gemini native image generation (free, no external service needed)
+    logger.info('[TRY-ON] Step 1 – Trying Gemini native image generation', { capName });
+    try {
+      const geminiResult = await generateTryOnWithGeminiImage({
+        userPhotoBase64,
+        capImageBase64,
+        userPhotoMime,
+        capImageMime,
+        capName,
+      });
+
+      if (geminiResult && geminiResult.imageBase64) {
+        const ext = (geminiResult.mimeType || 'image/png').includes('png') ? 'png' : 'jpg';
+        const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.${ext}`;
+        const imageBuffer = Buffer.from(geminiResult.imageBase64, 'base64');
+        fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
+
+        logger.info('[TRY-ON] Gemini image saved', { filename, bytes: imageBuffer.length });
+
+        return {
+          success: true,
+          generatedImageUrl: `/uploads/products/try-on/${filename}`,
+          description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
+          message: '¡Imagen generada!',
+        };
+      }
+      logger.warn('[TRY-ON] Gemini image generation returned no image, falling back to Pollinations');
+    } catch (geminiErr) {
+      logger.warn('[TRY-ON] Gemini image generation failed, falling back to Pollinations', {
+        message: geminiErr.message,
+        status: geminiErr.response?.status,
+      });
+    }
+
+    // Strategy 2 (fallback): Gemini text prompt + Pollinations/FLUX image generation
+    logger.info('[TRY-ON] Step 2 – Building prompt with Gemini Vision (fallback)', { capName });
     const prompt = await buildTryOnPrompt({
       userPhotoBase64,
       capImageBase64,
@@ -219,19 +259,11 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
     });
     logger.info('[TRY-ON] Prompt generated', { prompt: prompt.substring(0, 150) });
 
-    // Step 2: Pollinations.ai (free, FLUX) generates the image from the prompt
-    logger.info('[TRY-ON] Step 2 – Generating image with Pollinations (free)');
+    logger.info('[TRY-ON] Step 3 – Generating image with Pollinations (fallback)');
     const imageUrl = await generateImageWithFlux(prompt);
     logger.info('[TRY-ON] Image URL from Pollinations', { imageUrl: imageUrl.substring(0, 120) });
 
-    // Step 3: Download and save the generated image
     const imageBuffer = await downloadImageToBuffer(imageUrl);
-
-    const uploadsBase = process.env.UPLOADS_DIR
-      ? path.resolve(process.env.UPLOADS_DIR)
-      : path.resolve(__dirname, '..', '..', '..', 'client', 'public', 'uploads');
-    const tryOnDir = path.join(uploadsBase, 'products', 'try-on');
-    fs.mkdirSync(tryOnDir, { recursive: true });
 
     const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.jpg`;
     fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
