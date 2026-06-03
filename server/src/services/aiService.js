@@ -167,8 +167,7 @@ const generateTryOnWithGeminiImage = async ({
 }) => {
   // Try multiple models in order of rate-limit generosity
   const models = [
-    'gemini-2.0-flash',
-    'gemini-2.5-flash-preview-04-17',
+    'gemini-2.0-flash-exp',
     'gemini-2.5-flash-image',
   ];
 
