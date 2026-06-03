@@ -286,19 +286,33 @@ const analyzeVirtualTryOn = async ({ userPhotoPath, capImagePath, capName }) => 
     const imageUrl = await generateImageWithFlux(prompt);
     logger.info('[TRY-ON] Image URL from Pollinations', { imageUrl: imageUrl.substring(0, 120) });
 
-    const imageBuffer = await downloadImageToBuffer(imageUrl);
+    // Try to download server-side first; if blocked by IP rate limit, return URL directly to client
+    try {
+      const imageBuffer = await downloadImageToBuffer(imageUrl);
+      const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.jpg`;
+      fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
+      logger.info('[TRY-ON] Image saved locally', { filename, bytes: imageBuffer.length });
 
-    const filename = `try-on-${Date.now()}-${Math.random().toString(16).slice(2, 10)}.jpg`;
-    fs.writeFileSync(path.join(tryOnDir, filename), imageBuffer);
+      return {
+        success: true,
+        generatedImageUrl: `/uploads/products/try-on/${filename}`,
+        description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
+        message: '¡Imagen generada!',
+      };
+    } catch (downloadErr) {
+      logger.warn('[TRY-ON] Server-side download failed, returning external URL to client', {
+        message: downloadErr.message,
+        status: downloadErr.response?.status,
+      });
 
-    logger.info('[TRY-ON] Image saved', { filename, bytes: imageBuffer.length });
-
-    return {
-      success: true,
-      generatedImageUrl: `/uploads/products/try-on/${filename}`,
-      description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
-      message: '¡Imagen generada!',
-    };
+      // Return the Pollinations URL directly — the user's browser will fetch it
+      return {
+        success: true,
+        generatedImageUrl: imageUrl,
+        description: `Visualización de cómo luciría la ${capName}. Generado con IA gratuita.`,
+        message: '¡Imagen generada!',
+      };
+    }
   } catch (err) {
     logger.error('Virtual try-on analysis failed', {
       message: err.message,
