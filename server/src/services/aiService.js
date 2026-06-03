@@ -10,6 +10,23 @@ const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
 const HF_IMAGE_ENDPOINT = 'https://router.huggingface.co/fal-ai/fal-ai/flux/schnell';
 const POLLINATIONS_ENDPOINT = 'https://image.pollinations.ai/prompt';
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const retryWithBackoff = async (fn, { maxRetries = 3, baseDelay = 3000, label = 'API call' } = {}) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = err.response?.status;
+      const isRetryable = status === 429 || status === 503 || status === 500;
+      if (!isRetryable || attempt === maxRetries) throw err;
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      logger.warn(`[RETRY] ${label} failed (${status}), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+      await sleep(delay);
+    }
+  }
+};
+
 const analyzeTransaction = async ({ orderId, amount, customerId, txHash, metadata = {} }) => {
   try {
     const { data } = await axios.post(
@@ -95,10 +112,13 @@ Respond ONLY with the prompt text. No quotes, no markdown, no labels, no explana
     ],
   };
 
-  const { data } = await axios.post(url, payload, {
-    timeout: 30000,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const { data } = await retryWithBackoff(
+    () => axios.post(url, payload, {
+      timeout: 30000,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+    { label: 'Gemini Vision prompt' }
+  );
 
   const parts = data?.candidates?.[0]?.content?.parts || [];
   return parts.map((p) => p.text || '').join('').trim();
@@ -174,10 +194,13 @@ Cap name (for context only): "${capName}".`,
     },
   };
 
-  const { data } = await axios.post(url, payload, {
-    timeout: 120000,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const { data } = await retryWithBackoff(
+    () => axios.post(url, payload, {
+      timeout: 120000,
+      headers: { 'Content-Type': 'application/json' },
+    }),
+    { maxRetries: 3, baseDelay: 5000, label: 'Gemini Image generation' }
+  );
 
   const parts = data?.candidates?.[0]?.content?.parts || [];
   for (const part of parts) {
