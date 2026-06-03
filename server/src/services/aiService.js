@@ -165,8 +165,12 @@ const generateTryOnWithGeminiImage = async ({
   capImageMime,
   capName,
 }) => {
-  const model = 'gemini-2.5-flash-image';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  // Try multiple models in order of rate-limit generosity
+  const models = [
+    'gemini-2.0-flash',
+    'gemini-2.5-flash-preview-04-17',
+    'gemini-2.5-flash-image',
+  ];
 
   const payload = {
     contents: [
@@ -190,26 +194,39 @@ Cap name (for context only): "${capName}".`,
       },
     ],
     generationConfig: {
-      responseModalities: ['IMAGE'],
+      responseModalities: ['IMAGE', 'TEXT'],
     },
   };
 
-  const { data } = await retryWithBackoff(
-    () => axios.post(url, payload, {
-      timeout: 120000,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-    { maxRetries: 3, baseDelay: 5000, label: 'Gemini Image generation' }
-  );
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    logger.info(`[TRY-ON] Trying Gemini model: ${model}`);
+    try {
+      const { data } = await retryWithBackoff(
+        () => axios.post(url, payload, {
+          timeout: 120000,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        { maxRetries: 2, baseDelay: 5000, label: `Gemini Image (${model})` }
+      );
 
-  const parts = data?.candidates?.[0]?.content?.parts || [];
-  for (const part of parts) {
-    const inline = part.inline_data || part.inlineData;
-    if (inline?.data && (inline.mime_type || inline.mimeType || '').startsWith('image/')) {
-      return {
-        imageBase64: inline.data,
-        mimeType: inline.mime_type || inline.mimeType,
-      };
+      const parts = data?.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        const inline = part.inline_data || part.inlineData;
+        if (inline?.data && (inline.mime_type || inline.mimeType || '').startsWith('image/')) {
+          logger.info(`[TRY-ON] Image generated successfully with model: ${model}`);
+          return {
+            imageBase64: inline.data,
+            mimeType: inline.mime_type || inline.mimeType,
+          };
+        }
+      }
+      logger.warn(`[TRY-ON] Model ${model} returned no image in response`);
+    } catch (err) {
+      logger.warn(`[TRY-ON] Model ${model} failed`, {
+        message: err.message,
+        status: err.response?.status,
+      });
     }
   }
   return null;
